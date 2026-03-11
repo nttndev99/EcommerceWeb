@@ -1,0 +1,86 @@
+@model Ecommerce.Application.DTOs.Category.CategoryDto
+
+@{
+    ViewData["Title"] = "Move to Trash";
+}
+
+<div class="container-fluid px-4 py-5 d-flex justify-content-center">
+    <div style="width:100%;max-width:520px">
+
+        <div class="card border-0 shadow-sm">
+
+            <div class="card-header bg-warning bg-opacity-10 border-0 py-4 px-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-warning bg-opacity-25 border border-warning border-opacity-50
+                                d-flex align-items-center justify-content-center"
+                        style="width:46px;height:46px;flex-shrink:0">
+                        <i class="bi bi-trash text-warning fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-semibold mb-0">Move to Trash?</h5>
+                        <small class="text-muted">The category will be hidden but can be restored later.</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body px-4 py-4">
+
+                <div class="rounded-3 bg-light p-3 small mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Name</span>
+                        <span class="fw-semibold">@Model.Name</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Slug</span>
+                        <span class="font-monospace">@Model.Slug</span>
+                    </div>
+                    @if (Model.ParentName != null)
+                    {
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Parent</span>
+                            <span>@Model.ParentName</span>
+                        </div>
+                    }
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Products</span>
+                        <span class="badge @(Model.ProductCount > 0 ? "bg-danger bg-opacity-10 text-danger" : "bg-secondary bg-opacity-10 text-secondary") fw-normal">
+                            @Model.ProductCount
+                        </span>
+                    </div>
+                </div>
+
+                @if (Model.ProductCount > 0)
+                {
+                    <div class="alert alert-danger d-flex gap-2 align-items-start py-2 small mb-0" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i>
+                        <span>
+                            This category has <strong>@Model.ProductCount active product(s)</strong>.
+                            You must remove or reassign them before deleting.
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning d-flex gap-2 align-items-start py-2 small mb-0" role="alert">
+                        <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
+                        <span>Sub-categories (if any) will also be moved to trash.</span>
+                    </div>
+                }
+            </div>
+
+            <div class="card-footer bg-white border-top d-flex justify-content-end gap-2 py-3 px-4">
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                @if (Model.ProductCount == 0)
+                {
+                    <form asp-action="SoftDelete" asp-route-id="@Model.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-warning text-dark">
+                            <i class="bi bi-trash me-1"></i> Move to Trash
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+
+    </div>
+</div>

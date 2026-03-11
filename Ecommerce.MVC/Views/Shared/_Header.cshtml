@@ -1,0 +1,85 @@
+    <!-- Header Section Begin -->
+    <header class="header">
+        <div class="header__top">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-6 col-md-7">
+                        <div class="header__top__left">
+                                <p>
+                                </p>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-5">
+                        <div class="header__top__right">
+                            @if (User.Identity!.IsAuthenticated)
+                            {
+                                <div class="header__top__hover">
+                                    <span>Hello, @User.Identity.Name  <i class="arrow_carrot-down"></i></span>
+                                    <ul>
+                                        @if (User.IsInRole("Admin"))
+                                        {
+                                        <li>                                                
+                                            <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-link nav-link">ADMIN PAGE</a>
+                                        </li>
+                                        }
+                                        <li>    
+                                            <form asp-controller="Account" asp-action="Logout" method="post"class="d-inline">
+                                                <button class="btn btn-link nav-link">Logout</button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="header__top__links">
+                                    <a asp-controller="Account" asp-action="Login">Sign in</a>
+                                    <a asp-controller="Account" asp-action="Register">Sign up</a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-3 col-md-3">
+                    <div class="header__logo">
+                        @* <a href="./index.html"><img src="~/img/NotFound.png" width="80" alt=""></a> *@
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6">
+                    <nav class="header__menu mobile-menu">
+                        <ul>
+                            <li class="active">
+                                <a asp-controller="Home" asp-action="Index">Home</a>
+                            </li>
+                            <li><a asp-controller="Home" asp-action="ShopPage">Shop</a></li>
+                            <li><a href="#">Pages</a>
+                                <ul class="dropdown">
+                                    <li><a href="./about.html">About Us</a></li>
+                                    <li><a href="./shop-details.html">Shop Details</a></li>
+                                    <li><a href="./shopping-cart.html">Shopping Cart</a></li>
+                                    <li><a href="./checkout.html">Check Out</a></li>
+                                    <li><a href="./blog-details.html">Blog Details</a></li>
+                                </ul>
+                            </li>
+                            <li><a href="./blog.html">Blog</a></li>
+                            <li><a href="./contact.html">Contacts</a></li>
+                        </ul>
+                    </nav>
+                </div>
+                <div class="col-lg-3 col-md-3">
+                    <div class="header__nav__option">
+                        <a href="#" class="search-switch"><img src="~/img/icon/search.png" alt=""></a>
+                        <a href="#"><img src="~/img/icon/heart.png" alt=""></a>
+                        <a asp-controller="Cart" asp-action="CartPage"><img src="~/img/icon/cart.png" alt=""> <span>0</span></a>
+                        <div class="price">$0.00</div>
+                    </div>
+                </div>
+            </div>
+            <div class="canvas__open"><i class="fa fa-bars"></i></div>
+        </div>
+    </header>
+    <!-- Header Section End -->

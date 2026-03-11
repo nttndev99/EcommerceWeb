@@ -1,0 +1,133 @@
+@model Ecommerce.Application.DTOs.Category.CreateCategoryDto
+
+@{
+    ViewData["Title"] = "New Category";
+    var parents = ViewBag.Parents as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>
+                ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+}
+
+<div class="container-fluid px-4 py-4" style="max-width:860px">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <div class="rounded-circle bg-dark d-flex align-items-center justify-content-center"
+            style="width:42px;height:42px;flex-shrink:0">
+            <i class="bi bi-folder-plus text-white"></i>
+        </div>
+        <div>
+            <h4 class="fw-semibold mb-0">New Category</h4>
+            <small class="text-muted">Fill in the details below</small>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+
+            @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ContainsKey(string.Empty))
+            {
+                <div class="alert alert-danger d-flex gap-2 align-items-start py-2" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+                    <div>@Html.ValidationSummary(true, null, new { @class = "mb-0" })</div>
+                </div>
+            }
+
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="Name" class="form-label fw-medium">
+                            Name <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Name" class="form-control @(ViewData.ModelState["Name"]?.Errors.Count > 0 ? "is-invalid" : "")"
+                            placeholder="e.g. Electronics" id="nameInput" />
+                        <span asp-validation-for="Name" class="invalid-feedback"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Slug" class="form-label fw-medium">Slug</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light text-muted">
+                                <i class="bi bi-link-45deg"></i>
+                            </span>
+                            <input asp-for="Slug" class="form-control" placeholder="auto-from-name" id="slugInput" />
+                        </div>
+                        <span asp-validation-for="Slug" class="text-danger small"></span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="ParentId" class="form-label fw-medium">Parent Category</label>
+                        <select asp-for="ParentId" asp-items="parents" class="form-select">
+                            <option value="">— None (top level) —</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="DisplayOrder" class="form-label fw-medium">Display Order</label>
+                        <input asp-for="DisplayOrder" type="number" min="0" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label fw-medium">Description</label>
+                    <textarea asp-for="Description" class="form-control" rows="3"
+                            placeholder="Optional short description…"></textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="ImageUrl" class="form-label fw-medium">Image URL</label>
+                    <input asp-for="ImageUrl" class="form-control"
+                        placeholder="https://cdn.example.com/image.jpg" />
+                </div>
+
+                <div class="mb-4 p-3 bg-light rounded-3">
+                    <div class="form-check form-switch m-0">
+                        <input asp-for="IsActive" class="form-check-input" type="checkbox"
+                            role="switch" id="toggleActive" style="width:2.5em;height:1.3em" />
+                        <label class="form-check-label fw-medium ms-2" for="toggleActive" id="toggleLabel">
+                            Active
+                        </label>
+                        <div class="text-muted small mt-1">Active categories are visible to customers.</div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                    <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-dark px-4">
+                        <i class="bi bi-check2 me-1"></i> Create Category
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+@await Html.PartialAsync("_CategoryToast")
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        // Auto-generate slug from name
+        const nameInput  = document.getElementById('nameInput');
+        const slugInput  = document.getElementById('slugInput');
+        let   slugTouched = slugInput.value.length > 0;
+
+        slugInput.addEventListener('input', () => slugTouched = true);
+        nameInput.addEventListener('input', () => {
+            if (!slugTouched) {
+                slugInput.value = nameInput.value.toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                    .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            }
+        });
+
+        // Toggle label
+        const toggle = document.getElementById('toggleActive');
+        const label  = document.getElementById('toggleLabel');
+        function updateLabel() {
+            label.textContent = toggle.checked ? 'Active' : 'Inactive';
+        }
+        toggle.addEventListener('change', updateLabel);
+        updateLabel();
+    </script>
+}

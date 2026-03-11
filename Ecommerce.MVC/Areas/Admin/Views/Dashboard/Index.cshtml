@@ -1,0 +1,272 @@
+@model Ecommerce.MVC.Areas.Admin.Models.DashboardViewModel
+@using Ecommerce.Domain.Enums
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+
+    <div>
+        <h2 class="fw-bold mb-1">Dashboard</h2>
+        <div class="text-muted small">
+            @DateTime.Now.ToString("dddd, MMMM d yyyy")
+        </div>
+    </div>
+
+    <a asp-controller="Products"       asp-action="Create"       class="btn btn-primary">
+        <i class="bi bi-plus-lg me-1"></i>
+        New Product
+    </a>
+
+</div>
+
+<!-- KPI row -->
+<div class="row g-4 mb-4">
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-3">
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small">Products</span>
+                    <i class="bi bi-box text-secondary"></i>
+                </div>
+
+                <h3 class="fw-bold mb-0">@Model.TotalProducts</h3>
+
+                <div class="text-muted small">
+                    @Model.ActiveProducts active
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-3">
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Categories</span>
+                    <i class="bi bi-grid text-secondary"></i>
+                </div>
+
+                <h3 class="fw-bold mb-0">
+                    @Model.TotalCategories
+                </h3>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-3">
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Variants</span>
+                    <i class="bi bi-layers text-secondary"></i>
+                </div>
+
+                <h3 class="fw-bold mb-0">
+                    @Model.TotalVariants
+                </h3>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+
+        <div class="card border-warning shadow-sm h-100">
+            <div class="card-body p-3">
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Low Stock</span>
+                    <i class="bi bi-exclamation-triangle text-warning"></i>
+                </div>
+
+                <h3 class="fw-bold text-warning mb-0">
+                    @Model.LowStockCount
+                </h3>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-sm-6">
+
+        <div class="card border-danger shadow-sm h-100">
+            <div class="card-body p-3">
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted small">Out Of Stock</span>
+                    <i class="bi bi-x-circle text-danger"></i>
+                </div>
+
+                <h3 class="fw-bold text-danger mb-0">
+                    @Model.OutOfStockCount
+                </h3>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+<!-- Main grid -->
+<div class="row g-4">
+
+    <div class="col-lg-8">
+
+        <!-- Status breakdown -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">
+                Products by Status
+            </div>
+
+            <div class="card-body">
+
+                @foreach (var s in Model.StatusBreakdown)
+                {
+                    double pct = Model.TotalProducts > 0
+                    ? (double)s.Count / Model.TotalProducts * 100
+                    : 0;
+
+                    <div class="mb-3">
+
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>@s.Status</span>
+                            <span class="fw-semibold">@s.Count</span>
+                        </div>
+
+                        <div class="progress" style="height:6px">
+                            <div class="progress-bar bg-primary" style="width:@pct%">
+                            </div>
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+        </div>
+
+        <!-- Recent products -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold"> <strong>Recent Products</strong>
+                <a asp-controller="Products" asp-action="Index" class="btn btn-sm btn-outline-secondary">View all</a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+
+                    <thead class="table-light">
+                        <tr>
+                            <th></th>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th>Stock</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var p in Model.RecentProducts)
+                        {
+                            <tr>
+
+                                <td style="width:60px">
+                                    @if (!string.IsNullOrEmpty(p.PrimaryImage))
+                                    {
+                                        <img src="@p.PrimaryImage" class="rounded" width="40">
+                                    }
+                                </td>
+
+                                <td>
+                                    <a asp-controller="Products" asp-action="Details" asp-route-id="@p.Id"
+                                           class="fw-semibold text-decoration-none">
+                                        @p.Name
+                                    </a>
+                                </td>
+
+                                <td class="text-muted">@p.CategoryName</td>
+
+                                <td>
+                                    @if (p.SalePrice.HasValue)
+                                    {
+                                        <del class="text-muted">$@p.BasePrice</del>
+                                        <span class="text-danger fw-bold">$@p.SalePrice</span>
+                                    }
+                                    else
+                                    {
+                                        <span>$@p.BasePrice</span>
+                                    }
+                                </td>
+
+                                <td>
+                                    <span class="badge bg-secondary">@p.Status</span>
+                                </td>
+
+                                <td>
+                                    <span class="badge bg-light text-dark">@p.TotalStock</span>
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Right sidebar -->
+    <div class="col-lg-4">
+
+        <div class="card shadow-sm">
+
+            <div class="card-header bg-white fw-semibold">
+                Stock Alerts
+            </div>
+
+            <ul class="list-group list-group-flush">
+
+                @foreach (var a in Model.StockAlerts)
+                {
+                    <li class="list-group-item d-flex justify-content-between">
+
+                        <div>
+                            <a asp-controller="Products" asp-action="Details" asp-route-id="@a.ProductId"
+                                   class="fw-semibold text-decoration-none">
+
+                                @a.ProductName
+                            </a>
+
+                            @if (!string.IsNullOrEmpty(a.VariantName))
+                            {
+                                <div class="small text-muted">@a.VariantName</div>
+                            }
+
+                        </div>
+
+                        <span class="badge @(a.IsOutOfStock ? "bg-danger" : "bg-warning")">
+                            @(a.IsOutOfStock ? "Out" : a.Available)
+                        </span>
+
+                    </li>
+                }
+
+            </ul>
+        </div>
+    </div>

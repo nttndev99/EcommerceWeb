@@ -1,0 +1,202 @@
+@model Ecommerce.MVC.Areas.Admin.Models.ProductIndexViewModel
+@using Ecommerce.Application.DTOs.Product
+@using Ecommerce.Domain.Enums
+@{
+    ViewData["Title"] = "Products";
+    var f = Model.Filter;
+
+    string StatusBadge(ProductStatus s) => s switch {
+        ProductStatus.Active       => "badge-success",
+        ProductStatus.Draft        => "badge-neutral",
+        ProductStatus.Inactive     => "badge-warning",
+        ProductStatus.OutOfStock   => "badge-danger",
+        ProductStatus.Discontinued => "badge-danger",
+        _ => "badge-neutral"
+    };
+
+    string StockBadge(int stock) => stock <= 0 ? "badge-danger" : stock <= 5 ? "badge-warning" : "badge-neutral";
+}
+
+<div class="page-header">
+    <div class="page-header-left">
+        <h1 class="page-title">Products</h1>
+        <p class="page-subtitle">@Model.Products.TotalCount total products</p>
+    </div>
+    <div class="page-actions">
+        @if (Model.LowStockCount > 0)
+        {
+            <a asp-controller="Inventory" asp-action="LowStock" class="btn btn-ghost" style="color:var(--warning);border-color:rgba(245,158,11,0.3)">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                @Model.LowStockCount Low Stock
+            </a>
+        }
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> New Product
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<form method="get" asp-action="Index">
+    <div class="filter-bar">
+        <div class="filter-group" style="flex:1.5;min-width:200px">
+            <label class="filter-label">Search</label>
+            <div class="input-group">
+                <input type="text" name="Search" value="@f.Search" class="form-control" placeholder="Name, SKU, brand..." />
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+            </div>
+        </div>
+        <div class="filter-group" style="min-width:150px">
+            <label class="filter-label">Category</label>
+            <select name="CategoryId" class="form-select">
+                <option value="">All Categories</option>
+                @foreach (var c in Model.Categories)
+                {
+                    <option value="@c.Value"
+                            selected="@(f.CategoryId?.ToString() == c.Value)">
+                        @c.Text
+                    </option>
+                }
+
+            </select>
+        </div>
+        <div class="filter-group" style="min-width:130px">
+            <label class="filter-label">Status</label>
+            <select name="Status" class="form-select">
+                <option value="">All Status</option>
+                @foreach (var s in Enum.GetValues<ProductStatus>())
+                {
+                    <option value="@((int)s)" selected="@(f.Status == s)">
+                        @s
+                    </option>
+                }
+            </select>
+        </div>
+        <div class="filter-group" style="min-width:110px">
+            <label class="filter-label">Stock</label>
+            <select name="InStock" class="form-select">
+                <option value="">All</option>
+                <option value="true" selected="@(f.InStock == true)">In Stock</option>
+                <option value="false" selected="@(f.InStock == false)">Out of Stock</option>
+            </select>
+        </div>
+        <div class="filter-group" style="min-width:90px">
+            <label class="filter-label">Min $</label>
+            <input type="number" name="MinPrice" value="@f.MinPrice" class="form-control" placeholder="0" step="0.01" min="0" />
+        </div>
+        <div class="filter-group" style="min-width:90px">
+            <label class="filter-label">Max $</label>
+            <input type="number" name="MaxPrice" value="@f.MaxPrice" class="form-control" placeholder="∞" step="0.01" min="0" />
+        </div>
+        <div class="filter-group" style="align-self:flex-end;display:flex;gap:6px">
+            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel-fill"></i> Filter</button>
+            <a asp-action="Index" class="btn btn-ghost btn-sm"><i class="bi bi-x-lg"></i></a>
+        </div>
+        <input type="hidden" name="PageSize" value="@f.PageSize" />
+    </div>
+</form>
+
+<!-- Table -->
+<div class="card">
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th style="width:52px"></th>
+                <th>Product</th>
+                <th>SKU</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Status</th>
+                <th>Stock</th>
+                <th style="width:48px;text-align:center">⭐</th>
+                <th style="text-align:right">Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var p in Model.Products.Items)
+            {
+                <tr class="@(p.TotalStock <= 0 ? "row-danger" : p.TotalStock <= 5 ? "row-warning" : "")">
+                    <td>
+                        @if (!string.IsNullOrEmpty(p.PrimaryImageUrl))
+                        {
+                            <img src="@p.PrimaryImageUrl" alt="" class="img-thumb" />
+                        }
+                        else
+                        {
+                            <div class="img-placeholder"><i class="bi bi-image"></i></div>
+                        }
+                    </td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@p.Id"
+                        style="color:var(--text-primary);text-decoration:none;font-weight:600">@p.Name</a>
+                        @if (!string.IsNullOrEmpty(p.Brand))
+                        {
+                            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">@p.Brand</div>
+                        }
+                    </td>
+                    <td><code>@(p.SKU ?? "—")</code></td>
+                    <td style="color:var(--text-muted)">@p.CategoryName</td>
+                    <td>
+                        @if (p.SalePrice.HasValue)
+                        {
+                            <div style="text-decoration:line-through;color:var(--text-muted);font-size:11px">$@p.BasePrice.ToString("N2")</div>
+                            <div style="color:var(--danger);font-weight:700">$@p.SalePrice.Value.ToString("N2")</div>
+                        }
+                        else
+                        {
+                            <span style="font-weight:600">$@p.BasePrice.ToString("N2")</span>
+                        }
+                    </td>
+                    <td><span class="badge @StatusBadge(p.Status)">@p.Status</span></td>
+                    <td>
+                        <span class="badge @StockBadge(p.TotalStock)">
+                            @(p.TotalStock <= 0 ? "Out" : p.TotalStock.ToString())
+                        </span>
+                    </td>
+                    <td style="text-align:center">
+                        @if (p.IsFeatured) { <i class="bi bi-star-fill" style="color:var(--accent)"></i> }
+                    </td>
+                    <td>
+                        <div style="display:flex;gap:4px;justify-content:flex-end">
+                            <a asp-action="Details" asp-route-id="@p.Id" class="btn btn-ghost btn-xs" title="View"><i class="bi bi-eye"></i></a>
+                            <a asp-action="Edit"    asp-route-id="@p.Id" class="btn btn-ghost btn-xs" title="Edit"><i class="bi bi-pencil"></i></a>
+                            <form asp-action="Delete" asp-route-id="@p.Id" method="post" style="display:inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-danger btn-xs" title="Delete"
+                                        data-confirm="Delete '@p.Name'?">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (!Model.Products.Items.Any())
+            {
+                <tr><td colspan="9">
+                    <div class="table-empty">
+                        <i class="bi bi-box-seam"></i>
+                        No products found. Try adjusting your filters.
+                    </div>
+                </td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Products.TotalPages > 1)
+    {
+        ViewBag.RouteValues = new Dictionary<string, object>
+        {
+            ["Search"] = f.Search ?? "",
+            ["CategoryId"] = f.CategoryId?.ToString() ?? "",
+            ["Status"] = f.Status?.ToString() ?? "",
+            ["InStock"] = f.InStock?.ToString() ?? "",
+            ["PageSize"] = f.PageSize,
+            ["SortBy"] = f.SortBy,
+            ["SortDirection"] = f.SortDirection
+        };
+        @await Html.PartialAsync("_Pagination", Model.Products)
+    }
+</div>
