@@ -20,7 +20,7 @@ PagingInfo.cs  ←── ViewModel chứa PagingInfo
 <div page-model="@Model.PagingInfo" ...>  ← trong View
 
 
-# Filter - Search - Paging - Soft Delete - Hard Delete - Restore  - Category
+# Filter - Search - Paging - Soft Delete - Hard Delete - Restore  - (Category)
 Domain
 Application: 
     Common: PagedResult, Result, SlugHelper (common)

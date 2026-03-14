@@ -1,0 +1,93 @@
+@using Ecommerce.Application.DTOs.Inventory
+@model IEnumerable<InventoryDto>
+@{
+    ViewData["Title"] = "Item is almost out of stock / out of stock";
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>
+            Item is almost out of stock / out of stock
+        </h5>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">← Inventory List</a>
+    </div>
+
+    @{
+        var outOfStock = Model.Where(i => i.IsOutOfStock).ToList();
+        var lowStock   = Model.Where(i => !i.IsOutOfStock).ToList();
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-1"></i> All items have sufficient stock. No warnings.
+        </div>
+    }
+    else
+    {
+        @if (outOfStock.Any())
+        {
+            <h6 class="text-danger mb-2">Out of stock (@outOfStock.Count)</h6>
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered table-sm align-middle table-danger">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th><th>Product</th><th>Variant</th>
+                            <th class="text-end">Available</th><th>Warehouse Location</th><th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in outOfStock)
+                        {
+                            <tr>
+                                <td>@item.Id</td>
+                                <td>@item.ProductName</td>
+                                <td>@(item.VariantName ?? "—")</td>
+                                <td class="text-end fw-bold text-danger">@item.AvailableQuantity</td>
+                                <td>@(item.WarehouseLocation ?? "—")</td>
+                                <td>
+                                    <a asp-action="Adjust" asp-route-id="@item.Id"
+                                    class="btn btn-sm btn-danger">Restock</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (lowStock.Any())
+        {
+            <h6 class="text-warning mb-2">Almost out of stock (@lowStock.Count)</h6>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm align-middle table-warning">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th><th>Product</th><th>Variant</th>
+                            <th class="text-end">Available</th><th class="text-end">Threshold</th>
+                            <th>Warehouse Location</th><th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in lowStock)
+                        {
+                            <tr>
+                                <td>@item.Id</td>
+                                <td>@item.ProductName</td>
+                                <td>@(item.VariantName ?? "—")</td>
+                                <td class="text-end fw-bold text-warning">@item.AvailableQuantity</td>
+                                <td class="text-end">@item.LowStockThreshold</td>
+                                <td>@(item.WarehouseLocation ?? "—")</td>
+                                <td>
+                                    <a asp-action="Adjust" asp-route-id="@item.Id"
+                                    class="btn btn-sm btn-warning">Adjust Stock</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</div>

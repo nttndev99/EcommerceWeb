@@ -73,21 +73,46 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a asp-area="Admin" asp-controller="Product" asp-action="Create" class="nav-link">
+                <a asp-area="Admin" asp-controller="Products" asp-action="Create" class="nav-link">
                   <p>
                     Add Product
                   </p>
                 </a>
               </li>
               <li class="nav-item">
-                <a asp-area="Admin" asp-controller="Product" asp-action="Index" class="nav-link">
+                <a asp-area="Admin" asp-controller="Products" asp-action="Index" class="nav-link">
                   <p>
                     Product List
                   </p>
                 </a>
               </li>
             </ul>
-          </li>      
+          </li>  
+          <li class="nav-item">
+            <a href="#" class="nav-link">
+              <i class="nav-icon bi bi-archive"></i>
+              <p>
+                Inventory
+                <i class="nav-arrow bi bi-chevron-right"></i>
+              </p>
+            </a>
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a asp-area="Admin" asp-controller="Inventories" asp-action="LowStock" class="nav-link">
+                  <p>
+                    Low Stock Items
+                  </p>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a asp-area="Admin" asp-controller="Inventories" asp-action="Index" class="nav-link">
+                  <p>
+                    Inventory List
+                  </p>
+                </a>
+              </li>
+            </ul>
+          </li>          
           <li class="nav-item">
             <a href="#" class="nav-link">
               <i class="nav-icon bi bi-card-list"></i>
@@ -98,29 +123,22 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a asp-area="Admin" asp-controller="Order" asp-action="Index"  class="nav-link">
+                <a asp-area="Admin" asp-controller="Orders" asp-action="Index"  class="nav-link">
                   <p>
                     Order List
                   </p>
                 </a>
               </li>           
-              <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <p>
-                    Order Tracking
-                  </p>
-                </a>
-              </li>
             </ul>
           </li>
-          <li class="nav-item">
+          @* <li class="nav-item">
             <a asp-area="Admin" asp-controller="Customer" asp-action="Index" class="nav-link">
               <i class="nav-icon bi bi-clipboard-data"></i>
               <p>
                 Customer
               </p>
             </a>
-          </li>
+          </li> *@
           @* <li class="nav-item">
             <a href="#" class="nav-link">
               <i class="nav-icon bi bi-image"></i>

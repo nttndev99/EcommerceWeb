@@ -8,562 +8,376 @@ namespace Ecommerce.Infrastructure.Persistence
 {
     public static class AppDbSeeder
     {
-public static async Task SeedAsync(EcommerceDbContext db, ILogger logger)
-{
-          var strategy = db.Database.CreateExecutionStrategy();
 
-            await strategy.ExecuteAsync(async () =>
+
+    public static async Task SeedAsync(EcommerceDbContext db, ILogger logger)
+    {
+        try
+        {
+            if (db.Categories.Any())
             {
-                if (await db.Categories.IgnoreQueryFilters().AnyAsync())
-                {
-                    logger.LogInformation("Database already seeded — skipping.");
-                    return;
-                }
+                logger.LogInformation("⏭️  Database already seeded, skipping.");
+                return;
+            }
 
-                logger.LogInformation("Seeding database …");
+            // ── 1. CATEGORIES ────────────────────────────────────────────
+            var electronics = new Category { Name = "Electronics",       Slug = "electronics",       Description = "Electronic devices and accessories",    ImageUrl = "https://placehold.co/400x300?text=Electronics",   ParentId = null, IsActive = true, DisplayOrder = 1 };
+            var fashion     = new Category { Name = "Fashion",           Slug = "fashion",           Description = "Clothing, shoes, and accessories",       ImageUrl = "https://placehold.co/400x300?text=Fashion",       ParentId = null, IsActive = true, DisplayOrder = 2 };
+            var homeGarden  = new Category { Name = "Home & Garden",     Slug = "home-garden",       Description = "Furniture, décor, and garden tools",     ImageUrl = "https://placehold.co/400x300?text=HomeGarden",    ParentId = null, IsActive = true, DisplayOrder = 3 };
+            var sports      = new Category { Name = "Sports & Outdoors", Slug = "sports-outdoors",   Description = "Sporting goods and outdoor equipment",   ImageUrl = "https://placehold.co/400x300?text=Sports",        ParentId = null, IsActive = true, DisplayOrder = 4 };
+            var beauty      = new Category { Name = "Beauty & Health",   Slug = "beauty-health",     Description = "Skincare, makeup, and wellness products", ImageUrl = "https://placehold.co/400x300?text=Beauty",       ParentId = null, IsActive = true, DisplayOrder = 5 };
 
-                await using var tx = await db.Database.BeginTransactionAsync();
+            await db.Categories.AddRangeAsync(electronics, fashion, homeGarden, sports, beauty);
+            await db.SaveChangesAsync();
 
-                try
-                {
-                    var cats = await SeedCategoriesAsync(db);
-                    var prods = await SeedProductsAsync(db, cats);
+            // Sub-categories
+            var phones        = new Category { Name = "Phones",            Slug = "phones",            ParentId = electronics.Id, IsActive = true, DisplayOrder = 1 };
+            var laptops       = new Category { Name = "Laptops",           Slug = "laptops",           ParentId = electronics.Id, IsActive = true, DisplayOrder = 2 };
+            var tablets       = new Category { Name = "Tablets",           Slug = "tablets",           ParentId = electronics.Id, IsActive = true, DisplayOrder = 3 };
+            var audio         = new Category { Name = "Audio",             Slug = "audio",             ParentId = electronics.Id, IsActive = true, DisplayOrder = 4 };
+            var menClothing   = new Category { Name = "Men's Clothing",    Slug = "mens-clothing",     ParentId = fashion.Id,     IsActive = true, DisplayOrder = 1 };
+            var womenClothing = new Category { Name = "Women's Clothing",  Slug = "womens-clothing",   ParentId = fashion.Id,     IsActive = true, DisplayOrder = 2 };
+            var shoes         = new Category { Name = "Shoes",             Slug = "shoes",             ParentId = fashion.Id,     IsActive = true, DisplayOrder = 3 };
+            var furniture     = new Category { Name = "Furniture",         Slug = "furniture",         ParentId = homeGarden.Id,  IsActive = true, DisplayOrder = 1 };
+            var kitchenware   = new Category { Name = "Kitchenware",       Slug = "kitchenware",       ParentId = homeGarden.Id,  IsActive = true, DisplayOrder = 2 };
+            var fitness       = new Category { Name = "Fitness",           Slug = "fitness",           ParentId = sports.Id,      IsActive = true, DisplayOrder = 1 };
+            var outdoor       = new Category { Name = "Outdoor Gear",      Slug = "outdoor-gear",      ParentId = sports.Id,      IsActive = true, DisplayOrder = 2 };
+            var skincare      = new Category { Name = "Skincare",          Slug = "skincare",          ParentId = beauty.Id,      IsActive = true, DisplayOrder = 1 };
 
-                    await SeedImagesAsync(db, prods);
-                    await SeedVariantsAsync(db, prods);
+            await db.Categories.AddRangeAsync(phones, laptops, tablets, audio, menClothing, womenClothing, shoes, furniture, kitchenware, fitness, outdoor, skincare);
+            await db.SaveChangesAsync();
 
-                    await db.SaveChangesAsync();
+            logger.LogInformation("✅ Seeded Categories");
 
-                    await SeedInventoryAsync(db, prods);
+            // ── 2. PRODUCTS ──────────────────────────────────────────────
+            var products = new List<Product>
+            {
+                // ── PHONES (5) ──
+                new() { Name = "iPhone 15 Pro",           Slug = "iphone-15-pro",           Description = "Apple iPhone 15 Pro with A17 Pro chip.",               ShortDescription = "Latest Apple flagship.",           BasePrice = 999.99m,  SalePrice = 949.99m,  SKU = "APPL-IPH15P",    Status = ProductStatus.Active, IsFeatured = true,  CategoryId = phones.Id,        Brand = "Apple",    Weight = 0.187m, Tags = "apple,iphone,5g" },
+                new() { Name = "Samsung Galaxy S24",      Slug = "samsung-galaxy-s24",      Description = "Samsung Galaxy S24 with Snapdragon 8 Gen 3.",           ShortDescription = "Samsung flagship 2024.",           BasePrice = 799.99m,  SalePrice = null,     SKU = "SAM-GS24",       Status = ProductStatus.Active, IsFeatured = true,  CategoryId = phones.Id,        Brand = "Samsung",  Weight = 0.167m, Tags = "samsung,android,5g" },
+                new() { Name = "Google Pixel 8 Pro",      Slug = "google-pixel-8-pro",      Description = "Google Pixel 8 Pro with Tensor G3 chip and AI features.", ShortDescription = "Best AI camera smartphone.",      BasePrice = 899.99m,  SalePrice = 849.99m,  SKU = "GOOG-PX8P",      Status = ProductStatus.Active, IsFeatured = false, CategoryId = phones.Id,        Brand = "Google",   Weight = 0.213m, Tags = "google,pixel,ai,camera" },
+                new() { Name = "OnePlus 12",              Slug = "oneplus-12",               Description = "OnePlus 12 with Snapdragon 8 Gen 3 and Hasselblad camera.", ShortDescription = "Flagship killer 2024.",         BasePrice = 699.99m,  SalePrice = 649.99m,  SKU = "OP-12",          Status = ProductStatus.Active, IsFeatured = false, CategoryId = phones.Id,        Brand = "OnePlus",  Weight = 0.220m, Tags = "oneplus,snapdragon,fast-charge" },
+                new() { Name = "Xiaomi 14 Ultra",         Slug = "xiaomi-14-ultra",          Description = "Xiaomi 14 Ultra with Leica optics and Snapdragon 8 Gen 3.", ShortDescription = "Pro photography smartphone.",   BasePrice = 1099.99m, SalePrice = null,     SKU = "XMI-14U",        Status = ProductStatus.Active, IsFeatured = true,  CategoryId = phones.Id,        Brand = "Xiaomi",   Weight = 0.222m, Tags = "xiaomi,leica,camera,5g" },
 
-                    await db.SaveChangesAsync();
+                // ── LAPTOPS (5) ──
+                new() { Name = "MacBook Pro 14\"",        Slug = "macbook-pro-14",           Description = "Apple MacBook Pro 14-inch with M3 chip.",               ShortDescription = "Pro laptop for creators.",         BasePrice = 1999.99m, SalePrice = 1899.99m, SKU = "APPL-MBP14",     Status = ProductStatus.Active, IsFeatured = true,  CategoryId = laptops.Id,       Brand = "Apple",    Weight = 1.55m,  Tags = "apple,macbook,m3" },
+                new() { Name = "Dell XPS 15",             Slug = "dell-xps-15",              Description = "Dell XPS 15 with Intel Core i9 and OLED display.",       ShortDescription = "Premium Windows laptop.",          BasePrice = 1799.99m, SalePrice = null,     SKU = "DELL-XPS15",     Status = ProductStatus.Active, IsFeatured = false, CategoryId = laptops.Id,       Brand = "Dell",     Weight = 1.86m,  Tags = "dell,xps,oled,intel" },
+                new() { Name = "ASUS ROG Zephyrus G14",  Slug = "asus-rog-zephyrus-g14",    Description = "ASUS ROG Zephyrus G14 gaming laptop with Ryzen 9.",       ShortDescription = "Compact gaming powerhouse.",       BasePrice = 1499.99m, SalePrice = 1399.99m, SKU = "ASUS-ROG-G14",   Status = ProductStatus.Active, IsFeatured = false, CategoryId = laptops.Id,       Brand = "ASUS",     Weight = 1.65m,  Tags = "asus,rog,gaming,ryzen" },
+                new() { Name = "Lenovo ThinkPad X1 Carbon", Slug = "lenovo-thinkpad-x1-carbon", Description = "Ultra-light business laptop with Intel Core i7.",   ShortDescription = "Business ultrabook.",              BasePrice = 1599.99m, SalePrice = null,     SKU = "LNV-TPX1C",      Status = ProductStatus.Active, IsFeatured = false, CategoryId = laptops.Id,       Brand = "Lenovo",   Weight = 1.12m,  Tags = "lenovo,thinkpad,business" },
+                new() { Name = "HP Spectre x360",         Slug = "hp-spectre-x360",          Description = "HP Spectre x360 2-in-1 laptop with OLED touchscreen.",   ShortDescription = "Premium 2-in-1 laptop.",          BasePrice = 1399.99m, SalePrice = 1299.99m, SKU = "HP-SPCX360",     Status = ProductStatus.Active, IsFeatured = false, CategoryId = laptops.Id,       Brand = "HP",       Weight = 1.36m,  Tags = "hp,spectre,2-in-1,oled" },
 
-                    await tx.CommitAsync();
+                // ── TABLETS (3) ──
+                new() { Name = "iPad Pro 12.9\"",         Slug = "ipad-pro-12",              Description = "Apple iPad Pro 12.9-inch with M2 chip and Liquid Retina XDR display.", ShortDescription = "Most powerful iPad.",  BasePrice = 1099.99m, SalePrice = null,     SKU = "APPL-IPDP12",    Status = ProductStatus.Active, IsFeatured = true,  CategoryId = tablets.Id,       Brand = "Apple",    Weight = 0.682m, Tags = "apple,ipad,m2" },
+                new() { Name = "Samsung Galaxy Tab S9",   Slug = "samsung-galaxy-tab-s9",    Description = "Samsung Galaxy Tab S9 with Dynamic AMOLED display.",       ShortDescription = "Android flagship tablet.",         BasePrice = 799.99m,  SalePrice = 749.99m,  SKU = "SAM-TABS9",      Status = ProductStatus.Active, IsFeatured = false, CategoryId = tablets.Id,       Brand = "Samsung",  Weight = 0.498m, Tags = "samsung,android,amoled" },
+                new() { Name = "Microsoft Surface Pro 9", Slug = "microsoft-surface-pro-9",  Description = "Microsoft Surface Pro 9 with Intel Core i7 and detachable keyboard.", ShortDescription = "Tablet meets laptop.",  BasePrice = 1299.99m, SalePrice = null,     SKU = "MSFT-SFP9",      Status = ProductStatus.Active, IsFeatured = false, CategoryId = tablets.Id,       Brand = "Microsoft", Weight = 0.879m, Tags = "microsoft,surface,windows" },
 
-                    logger.LogInformation("Seeding complete.");
-                }
-                catch (Exception ex)
-                {
-                    await tx.RollbackAsync();
-                    logger.LogError(ex, "Seeding failed.");
-                    throw;
-                }
+                // ── AUDIO (4) ──
+                new() { Name = "Sony WH-1000XM5",         Slug = "sony-wh-1000xm5",          Description = "Sony WH-1000XM5 wireless noise-canceling headphones.",     ShortDescription = "Best ANC headphones.",             BasePrice = 349.99m,  SalePrice = 279.99m,  SKU = "SNY-WH1000XM5",  Status = ProductStatus.Active, IsFeatured = true,  CategoryId = audio.Id,         Brand = "Sony",     Weight = 0.250m, Tags = "sony,anc,wireless,headphones" },
+                new() { Name = "Apple AirPods Pro 2",     Slug = "apple-airpods-pro-2",       Description = "Apple AirPods Pro 2nd generation with H2 chip.",            ShortDescription = "Premium Apple earbuds.",           BasePrice = 249.99m,  SalePrice = null,     SKU = "APPL-APP2",      Status = ProductStatus.Active, IsFeatured = false, CategoryId = audio.Id,         Brand = "Apple",    Weight = 0.051m, Tags = "apple,airpods,anc,earbuds" },
+                new() { Name = "Bose QuietComfort 45",    Slug = "bose-quietcomfort-45",      Description = "Bose QC45 wireless headphones with world-class noise cancellation.", ShortDescription = "Iconic Bose comfort.",     BasePrice = 329.99m,  SalePrice = 299.99m,  SKU = "BOSE-QC45",      Status = ProductStatus.Active, IsFeatured = false, CategoryId = audio.Id,         Brand = "Bose",     Weight = 0.238m, Tags = "bose,anc,wireless" },
+                new() { Name = "JBL Charge 5",            Slug = "jbl-charge-5",              Description = "JBL Charge 5 portable Bluetooth speaker with powerbank feature.", ShortDescription = "Waterproof Bluetooth speaker.", BasePrice = 179.99m, SalePrice = 149.99m,  SKU = "JBL-CHG5",       Status = ProductStatus.Active, IsFeatured = false, CategoryId = audio.Id,         Brand = "JBL",      Weight = 0.960m, Tags = "jbl,bluetooth,speaker,waterproof" },
+
+                // ── MEN'S CLOTHING (4) ──
+                new() { Name = "Classic Men T-Shirt",     Slug = "classic-men-tshirt",        Description = "Comfortable 100% cotton everyday t-shirt.",                ShortDescription = "100% cotton casual tee.",          BasePrice = 29.99m,   SalePrice = 24.99m,   SKU = "FASH-TSH-001",   Status = ProductStatus.Active, IsFeatured = false, CategoryId = menClothing.Id,   Brand = "BasicWear", Weight = 0.20m, Tags = "tshirt,men,cotton" },
+                new() { Name = "Men Slim-Fit Chinos",     Slug = "men-slim-fit-chinos",        Description = "Stretch slim-fit chino pants, wrinkle-resistant.",         ShortDescription = "Smart casual chinos.",             BasePrice = 59.99m,   SalePrice = null,     SKU = "FASH-CHN-001",   Status = ProductStatus.Active, IsFeatured = false, CategoryId = menClothing.Id,   Brand = "BasicWear", Weight = 0.45m, Tags = "chinos,men,pants,slim" },
+                new() { Name = "Men Denim Jacket",        Slug = "men-denim-jacket",           Description = "Classic denim jacket with button closure.",                ShortDescription = "Timeless denim jacket.",           BasePrice = 89.99m,   SalePrice = 74.99m,   SKU = "FASH-DNM-001",   Status = ProductStatus.Active, IsFeatured = false, CategoryId = menClothing.Id,   Brand = "BasicWear", Weight = 0.85m, Tags = "denim,jacket,men" },
+                new() { Name = "Men Formal Oxford Shirt", Slug = "men-formal-oxford-shirt",    Description = "Premium Oxford cotton formal shirt, wrinkle-resistant.",    ShortDescription = "Classic Oxford shirt.",            BasePrice = 49.99m,   SalePrice = null,     SKU = "FASH-OXF-001",   Status = ProductStatus.Active, IsFeatured = false, CategoryId = menClothing.Id,   Brand = "BasicWear", Weight = 0.30m, Tags = "shirt,men,formal,oxford" },
+
+                // ── WOMEN'S CLOTHING (4) ──
+                new() { Name = "Women Floral Dress",      Slug = "women-floral-dress",         Description = "Light chiffon floral summer dress with v-neck.",           ShortDescription = "Elegant summer dress.",            BasePrice = 69.99m,   SalePrice = 54.99m,   SKU = "FASH-WD-001",    Status = ProductStatus.Active, IsFeatured = true,  CategoryId = womenClothing.Id, Brand = "ElegantLine", Weight = 0.35m, Tags = "dress,women,floral,summer" },
+                new() { Name = "Women Yoga Leggings",     Slug = "women-yoga-leggings",         Description = "High-waist compression leggings for yoga and gym.",        ShortDescription = "Flexible yoga leggings.",          BasePrice = 44.99m,   SalePrice = 39.99m,   SKU = "FASH-WL-001",    Status = ProductStatus.Active, IsFeatured = false, CategoryId = womenClothing.Id, Brand = "ActiveGirl",  Weight = 0.25m, Tags = "leggings,women,yoga,activewear" },
+                new() { Name = "Women Wool Blazer",       Slug = "women-wool-blazer",           Description = "Tailored single-button wool-blend blazer.",                ShortDescription = "Smart professional blazer.",       BasePrice = 119.99m,  SalePrice = null,     SKU = "FASH-WB-001",    Status = ProductStatus.Active, IsFeatured = false, CategoryId = womenClothing.Id, Brand = "ElegantLine", Weight = 0.70m, Tags = "blazer,women,wool,formal" },
+                new() { Name = "Women Crop Hoodie",       Slug = "women-crop-hoodie",           Description = "Soft fleece crop hoodie for casual everyday wear.",         ShortDescription = "Cozy fleece crop hoodie.",         BasePrice = 54.99m,   SalePrice = 44.99m,   SKU = "FASH-WH-001",    Status = ProductStatus.Active, IsFeatured = false, CategoryId = womenClothing.Id, Brand = "ActiveGirl",  Weight = 0.40m, Tags = "hoodie,women,crop,fleece" },
+
+                // ── SHOES (3) ──
+                new() { Name = "Nike Air Max 270",        Slug = "nike-air-max-270",            Description = "Nike Air Max 270 with large Max Air unit in the heel.",    ShortDescription = "Iconic Air Max cushioning.",       BasePrice = 149.99m,  SalePrice = 129.99m,  SKU = "NIKE-AM270",     Status = ProductStatus.Active, IsFeatured = true,  CategoryId = shoes.Id,         Brand = "Nike",     Weight = 0.31m,  Tags = "nike,airmax,sneakers,running" },
+                new() { Name = "Adidas Ultraboost 23",    Slug = "adidas-ultraboost-23",         Description = "Adidas Ultraboost 23 with Boost midsole and Primeknit upper.", ShortDescription = "Premium running shoes.",        BasePrice = 179.99m,  SalePrice = null,     SKU = "ADI-UB23",       Status = ProductStatus.Active, IsFeatured = false, CategoryId = shoes.Id,         Brand = "Adidas",   Weight = 0.33m,  Tags = "adidas,ultraboost,running" },
+                new() { Name = "Converse Chuck Taylor",   Slug = "converse-chuck-taylor",        Description = "Classic Converse Chuck Taylor All Star canvas sneaker.",   ShortDescription = "Timeless canvas sneaker.",         BasePrice = 64.99m,   SalePrice = null,     SKU = "CONV-CT-001",    Status = ProductStatus.Active, IsFeatured = false, CategoryId = shoes.Id,         Brand = "Converse",  Weight = 0.28m, Tags = "converse,chucktaylor,casual" },
+
+                // ── FURNITURE (3) ──
+                new() { Name = "Ergonomic Office Chair",  Slug = "ergonomic-office-chair",      Description = "Full mesh ergonomic chair with lumbar support and armrests.", ShortDescription = "Work comfortably all day.",      BasePrice = 299.99m,  SalePrice = 249.99m,  SKU = "FURN-OC-001",    Status = ProductStatus.Active, IsFeatured = false, CategoryId = furniture.Id,     Brand = "WorkPro",   Weight = 14.0m, Tags = "chair,office,ergonomic,mesh" },
+                new() { Name = "Minimalist Desk",         Slug = "minimalist-desk",              Description = "Clean-line 140cm wooden desk with cable management.",       ShortDescription = "Sleek home office desk.",          BasePrice = 349.99m,  SalePrice = null,     SKU = "FURN-DK-001",    Status = ProductStatus.Active, IsFeatured = false, CategoryId = furniture.Id,     Brand = "WorkPro",   Weight = 28.0m, Tags = "desk,office,wood,minimalist" },
+                new() { Name = "3-Seater Sofa",           Slug = "3-seater-sofa",                Description = "Modern fabric 3-seater sofa with solid wood legs.",         ShortDescription = "Comfortable living room sofa.",    BasePrice = 799.99m,  SalePrice = 699.99m,  SKU = "FURN-SF-001",    Status = ProductStatus.Active, IsFeatured = false, CategoryId = furniture.Id,     Brand = "HomePlus",  Weight = 45.0m, Tags = "sofa,living-room,fabric" },
+
+                // ── KITCHENWARE (3) ──
+                new() { Name = "Instant Pot Duo 7-in-1",  Slug = "instant-pot-duo-7in1",        Description = "7-in-1 multi-use programmable pressure cooker.",             ShortDescription = "The ultimate kitchen appliance.",  BasePrice = 99.99m,   SalePrice = 79.99m,   SKU = "KITCH-IP-001",   Status = ProductStatus.Active, IsFeatured = false, CategoryId = kitchenware.Id,   Brand = "Instant Pot", Weight = 5.4m, Tags = "instant-pot,pressure-cooker,kitchen" },
+                new() { Name = "Vitamix E310 Blender",    Slug = "vitamix-e310-blender",         Description = "Vitamix Explorian E310 with 5-year warranty.",              ShortDescription = "Professional-grade blender.",      BasePrice = 349.99m,  SalePrice = null,     SKU = "KITCH-VTX-001",  Status = ProductStatus.Active, IsFeatured = false, CategoryId = kitchenware.Id,   Brand = "Vitamix",   Weight = 4.3m,  Tags = "vitamix,blender,kitchen" },
+                new() { Name = "Cast Iron Skillet 12\"",  Slug = "cast-iron-skillet-12",         Description = "Pre-seasoned 12-inch cast iron skillet, oven-safe to 500°F.", ShortDescription = "Classic cast iron skillet.",      BasePrice = 44.99m,   SalePrice = 39.99m,   SKU = "KITCH-CI-001",   Status = ProductStatus.Active, IsFeatured = false, CategoryId = kitchenware.Id,   Brand = "Lodge",     Weight = 3.6m,  Tags = "cast-iron,skillet,lodge,cooking" },
+
+                // ── FITNESS (3) ──
+                new() { Name = "Adjustable Dumbbell Set", Slug = "adjustable-dumbbell-set",      Description = "Adjustable dumbbell set 5–52.5 lbs per dumbbell.",          ShortDescription = "Space-saving dumbbell set.",       BasePrice = 349.99m,  SalePrice = 299.99m,  SKU = "FIT-DB-001",     Status = ProductStatus.Active, IsFeatured = false, CategoryId = fitness.Id,       Brand = "Bowflex",   Weight = 24.0m, Tags = "dumbbell,fitness,home-gym" },
+                new() { Name = "Yoga Mat Premium",        Slug = "yoga-mat-premium",             Description = "Extra thick 6mm non-slip TPE yoga mat with carry strap.",   ShortDescription = "Non-slip premium yoga mat.",       BasePrice = 49.99m,   SalePrice = 39.99m,   SKU = "FIT-YM-001",     Status = ProductStatus.Active, IsFeatured = false, CategoryId = fitness.Id,       Brand = "Gaiam",     Weight = 1.2m,  Tags = "yoga,mat,fitness,tpe" },
+                new() { Name = "Jump Rope Speed",         Slug = "jump-rope-speed",              Description = "Lightweight aluminum speed jump rope with ball bearings.",   ShortDescription = "Speed training jump rope.",        BasePrice = 24.99m,   SalePrice = null,     SKU = "FIT-JR-001",     Status = ProductStatus.Active, IsFeatured = false, CategoryId = fitness.Id,       Brand = "RogueFit",  Weight = 0.15m, Tags = "jump-rope,cardio,speed" },
+
+                // ── OUTDOOR (3) ──
+                new() { Name = "North Face Tent 2-Person", Slug = "north-face-tent-2-person",   Description = "2-person ultralight backpacking tent with rainfly.",        ShortDescription = "Ultralight camping tent.",         BasePrice = 449.99m,  SalePrice = null,     SKU = "OUT-TNT-001",    Status = ProductStatus.Active, IsFeatured = false, CategoryId = outdoor.Id,       Brand = "The North Face", Weight = 1.4m, Tags = "tent,camping,outdoor,ultralight" },
+                new() { Name = "Hydro Flask 32 oz",       Slug = "hydro-flask-32oz",             Description = "32 oz wide mouth insulated stainless steel water bottle.",  ShortDescription = "Keep drinks cold 24hrs.",          BasePrice = 49.99m,   SalePrice = null,     SKU = "OUT-HF-001",     Status = ProductStatus.Active, IsFeatured = false, CategoryId = outdoor.Id,       Brand = "Hydro Flask", Weight = 0.36m, Tags = "water-bottle,hydro-flask,insulated" },
+                new() { Name = "Osprey Atmos 65 Backpack", Slug = "osprey-atmos-65-backpack",   Description = "Osprey Atmos AG 65L men's backpacking pack.",               ShortDescription = "Top-rated hiking backpack.",       BasePrice = 299.99m,  SalePrice = 269.99m,  SKU = "OUT-BP-001",     Status = ProductStatus.Active, IsFeatured = false, CategoryId = outdoor.Id,       Brand = "Osprey",    Weight = 2.2m,  Tags = "backpack,hiking,osprey,65l" },
+
+                // ── SKINCARE (3) ──
+                new() { Name = "Cetaphil Moisturizing Cream", Slug = "cetaphil-moisturizing-cream", Description = "Cetaphil moisturizing cream for dry, sensitive skin 550g.", ShortDescription = "Gentle daily moisturizer.",     BasePrice = 19.99m,   SalePrice = null,     SKU = "SKIN-CTF-001",   Status = ProductStatus.Active, IsFeatured = false, CategoryId = skincare.Id,      Brand = "Cetaphil", Weight = 0.6m,   Tags = "cetaphil,moisturizer,skincare,sensitive" },
+                new() { Name = "The Ordinary Niacinamide",    Slug = "the-ordinary-niacinamide",    Description = "The Ordinary Niacinamide 10% + Zinc 1% serum 30ml.",        ShortDescription = "Pore-minimizing serum.",          BasePrice = 12.99m,   SalePrice = null,     SKU = "SKIN-ORD-001",   Status = ProductStatus.Active, IsFeatured = false, CategoryId = skincare.Id,      Brand = "The Ordinary", Weight = 0.05m, Tags = "niacinamide,serum,skincare" },
+                new() { Name = "Neutrogena SPF 50 Sunscreen", Slug = "neutrogena-spf50-sunscreen",  Description = "Neutrogena Ultra Sheer Dry-Touch SPF 50 sunscreen 88ml.",   ShortDescription = "Lightweight SPF 50 protection.",  BasePrice = 14.99m,   SalePrice = 12.99m,   SKU = "SKIN-NTG-001",   Status = ProductStatus.Active, IsFeatured = false, CategoryId = skincare.Id,      Brand = "Neutrogena", Weight = 0.12m, Tags = "sunscreen,spf50,neutrogena" },
+            };
+
+            await db.Products.AddRangeAsync(products);
+            await db.SaveChangesAsync();
+
+            logger.LogInformation("✅ Seeded {Count} Products", products.Count);
+
+            // ── 3. PRODUCT IMAGES ────────────────────────────────────────
+            var images = products.SelectMany(p => new[]
+            {
+                new ProductImage { ProductId = p.Id, ImageUrl = $"https://placehold.co/800x800?text={Uri.EscapeDataString(p.Name)}",   AltText = p.Name,           IsPrimary = true,  DisplayOrder = 1 },
+                new ProductImage { ProductId = p.Id, ImageUrl = $"https://placehold.co/800x800?text={Uri.EscapeDataString(p.Name)}+2", AltText = p.Name + " alt",  IsPrimary = false, DisplayOrder = 2 },
+            }).ToList();
+
+            await db.ProductImages.AddRangeAsync(images);
+            await db.SaveChangesAsync();
+
+            logger.LogInformation("✅ Seeded ProductImages");
+
+            // ── 4. PRODUCT VARIANTS ──────────────────────────────────────
+            var allVariants = new List<ProductVariant>();
+
+            void AddVariants(Product p, IEnumerable<ProductVariant> variants)
+            {
+                foreach (var v in variants) { v.ProductId = p.Id; allVariants.Add(v); }
+            }
+
+            var iphone15      = products[0];
+            var galaxyS24     = products[1];
+            var pixel8Pro     = products[2];
+            var oneplus12     = products[3];
+            var xiaomi14Ultra = products[4];
+            var macbookPro    = products[5];
+            var dellXps       = products[6];
+            var rogZephyrus   = products[7];
+            var thinkpad      = products[8];
+            var hpSpectre     = products[9];
+            var ipadPro       = products[10];
+            var galaxyTabS9   = products[11];
+            var surfacePro    = products[12];
+            var sonyWH        = products[13];
+            var airpodsPro    = products[14];
+            var boseQC        = products[15];
+            var jblCharge     = products[16];
+            var tshirtMen     = products[17];
+            var chinosMen     = products[18];
+            var denimJacket   = products[19];
+            var oxfordShirt   = products[20];
+            var floralDress   = products[21];
+            var yogaLeggings  = products[22];
+            var woolBlazer    = products[23];
+            var cropHoodie    = products[24];
+            var nikeAirMax    = products[25];
+            var adidasUB      = products[26];
+            var converse      = products[27];
+            // products[28..39] = furniture, kitchenware, fitness, outdoor, skincare (no variants needed)
+
+            // Phones — Color + Storage
+            AddVariants(iphone15, new[]
+            {
+                new ProductVariant { Name = "Black / 256GB",    SKU = "IPH15P-BLK-256", Price = 999.99m,  Color = "Black Titanium",  Size = "256GB", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "Black / 512GB",    SKU = "IPH15P-BLK-512", Price = 1099.99m, Color = "Black Titanium",  Size = "512GB", IsActive = true, DisplayOrder = 2 },
+                new ProductVariant { Name = "White / 256GB",    SKU = "IPH15P-WHT-256", Price = 999.99m,  Color = "White Titanium",  Size = "256GB", IsActive = true, DisplayOrder = 3 },
+                new ProductVariant { Name = "Natural / 512GB",  SKU = "IPH15P-NAT-512", Price = 1099.99m, Color = "Natural Titanium",Size = "512GB", IsActive = true, DisplayOrder = 4 },
             });
-        }
-
-        // CATEGORIES ────────────────────────────────────────────────────────────────
-
-        private static async Task<Dictionary<string, Category>> SeedCategoriesAsync(EcommerceDbContext db)
-        {
-            var t = DateTime.UtcNow;
-            var electronics = C("Electronics", "electronics", null, "Consumer electronics & gadgets", 1, t);
-            var fashion = C("Fashion", "fashion", null, "Clothing, footwear & accessories", 2, t);
-            var home = C("Home & Garden", "home-garden", null, "Furniture, décor & garden", 3, t);
-            var sports = C("Sports", "sports", null, "Equipment, apparel & outdoor", 4, t);
-            var beauty = C("Beauty", "beauty", null, "Skincare, makeup & personal care", 5, t);
-            var gaming = C("Gaming", "gaming", null, "Consoles, games & accessories", 6, t);
-            db.Categories.AddRange(electronics, fashion, home, sports, beauty, gaming);
-            await db.SaveChangesAsync();
-
-            var smartphones = C("Smartphones", "smartphones", electronics.Id, "Latest mobile phones", 1, t);
-            var laptops = C("Laptops", "laptops", electronics.Id, "Notebooks & ultrabooks", 2, t);
-            var headphones = C("Headphones", "headphones", electronics.Id, "Over-ear, in-ear, TWS", 3, t);
-            var tablets = C("Tablets", "tablets", electronics.Id, "iPads & Android tablets", 4, t);
-            var cameras = C("Cameras", "cameras", electronics.Id, "DSLR, mirrorless & action cams", 5, t);
-            var smartwatches = C("Smartwatches", "smartwatches", electronics.Id, "Fitness trackers & smart watches", 6, t);
-            var menClothing = C("Men's Clothing", "mens-clothing", fashion.Id, "Tops, bottoms & suits for men", 1, t);
-            var womenCloth = C("Women's Clothing", "womens-clothing", fashion.Id, "Dresses, tops & bottoms for women", 2, t);
-            var shoes = C("Shoes", "shoes", fashion.Id, "Sneakers, boots & formal", 3, t);
-            var bags = C("Bags", "bags", fashion.Id, "Backpacks, handbags & wallets", 4, t);
-            var furniture = C("Furniture", "furniture", home.Id, "Sofas, beds, tables & chairs", 1, t);
-            var kitchen = C("Kitchenware", "kitchenware", home.Id, "Cookware & kitchen tools", 2, t);
-            var lighting = C("Lighting", "lighting", home.Id, "Lamps & strip lights", 3, t);
-            var fitness = C("Fitness Equipment", "fitness-equipment", sports.Id, "Gym & home workout gear", 1, t);
-            var outdoor = C("Outdoor Sports", "outdoor-sports", sports.Id, "Camping, hiking & cycling", 2, t);
-            var skincare = C("Skincare", "skincare", beauty.Id, "Moisturisers, serums & sunscreens", 1, t);
-            var makeup = C("Makeup", "makeup", beauty.Id, "Foundation, lips & eye makeup", 2, t);
-            var haircare = C("Hair Care", "hair-care", beauty.Id, "Shampoos, conditioners & tools", 3, t);
-            var consoles = C("Consoles", "consoles", gaming.Id, "PlayStation, Xbox & Nintendo", 1, t);
-            var gameAccess = C("Gaming Accessories", "gaming-accessories", gaming.Id, "Controllers, headsets & keyboards", 2, t);
-            db.Categories.AddRange(
-                smartphones, laptops, headphones, tablets, cameras, smartwatches,
-                menClothing, womenCloth, shoes, bags, furniture, kitchen, lighting,
-                fitness, outdoor, skincare, makeup, haircare, consoles, gameAccess);
-            await db.SaveChangesAsync();
-
-            return new Dictionary<string, Category>
+            AddVariants(galaxyS24, new[]
             {
-                ["electronics"] = electronics,
-                ["fashion"] = fashion,
-                ["home"] = home,
-                ["sports"] = sports,
-                ["beauty"] = beauty,
-                ["gaming"] = gaming,
-                ["smartphones"] = smartphones,
-                ["laptops"] = laptops,
-                ["headphones"] = headphones,
-                ["tablets"] = tablets,
-                ["cameras"] = cameras,
-                ["smartwatches"] = smartwatches,
-                ["menClothing"] = menClothing,
-                ["womenCloth"] = womenCloth,
-                ["shoes"] = shoes,
-                ["bags"] = bags,
-                ["furniture"] = furniture,
-                ["kitchen"] = kitchen,
-                ["lighting"] = lighting,
-                ["fitness"] = fitness,
-                ["outdoor"] = outdoor,
-                ["skincare"] = skincare,
-                ["makeup"] = makeup,
-                ["haircare"] = haircare,
-                ["consoles"] = consoles,
-                ["gameAccess"] = gameAccess,
-            };
-        }
-
-        // PRODUCTS ──────────────────────────────────────────────────────────────────
-
-        private static async Task<List<Product>> SeedProductsAsync(
-            EcommerceDbContext db, Dictionary<string, Category> cats)
-        {
-            var t = DateTime.UtcNow;
-            var list = new List<Product>
-        {
-            // SMARTPHONES
-            P("iPhone 16 Pro Max","iphone-16-pro-max",cats["smartphones"].Id,
-              1299.99m,1199.99m,"IPH16PM",   Active,true,"Apple",
-              "The most powerful iPhone with A18 Pro chip and titanium design.",
-              "A18 Pro · 48 MP ProRAW · Action Button · USB-C","apple,iphone,5g",t.AddDays(-30)),
-            P("Samsung Galaxy S25 Ultra","samsung-s25-ultra",cats["smartphones"].Id,
-              1199.99m,null,"SGS25U",        Active,true,"Samsung",
-              "Galaxy flagship with built-in S Pen and Galaxy AI.",
-              "Snapdragon 8 Elite · 200 MP · S Pen · 45 W","samsung,galaxy,s-pen,5g",t.AddDays(-22)),
-            P("Google Pixel 9 Pro","google-pixel-9-pro",cats["smartphones"].Id,
-              999.00m,899.00m,"GPX9P",       Active,false,"Google",
-              "Pure Android with class-leading computational photography.",
-              "Tensor G4 · 50 MP · Magic Eraser · 7 yrs updates","google,pixel,android",t.AddDays(-15)),
-            P("OnePlus 13","oneplus-13",cats["smartphones"].Id,
-              799.00m,null,"OP13",           Active,false,"OnePlus",
-              "Flagship killer with Hasselblad-tuned cameras and 100 W charging.",
-              "Snapdragon 8 Elite · Hasselblad · 100 W","oneplus,flagship",t.AddDays(-10)),
-            P("iPhone 15","iphone-15",cats["smartphones"].Id,
-              699.00m,549.00m,"IPH15",       Inactive,false,"Apple",
-              "Previous-gen iPhone with USB-C and Dynamic Island.",
-              "A16 Bionic · 48 MP · Dynamic Island","apple,iphone",t.AddDays(-90)),
-            P("Xiaomi 14 Ultra","xiaomi-14-ultra",cats["smartphones"].Id,
-              1099.00m,null,"XMI14U",        Active,false,"Xiaomi",
-              "Leica-partnered quad-camera flagship phone.",
-              "Snapdragon 8 Gen 3 · Leica quad cam · 90 W wireless","xiaomi,leica",t.AddDays(-8)),
-            // LAPTOPS
-            P("MacBook Pro 14\" M4","macbook-pro-14-m4",cats["laptops"].Id,
-              1999.00m,null,"MBP14M4",       Active,true,"Apple",
-              "Pro-grade laptop powered by M4 for creators and developers.",
-              "M4 Pro · 18 h battery · Liquid Retina XDR · 1 TB","apple,macbook,m4",t.AddDays(-25)),
-            P("Dell XPS 15","dell-xps-15",cats["laptops"].Id,
-              1799.00m,1599.00m,"DXP15",     Active,false,"Dell",
-              "Thin-and-light powerhouse with a stunning OLED display.",
-              "Intel Core i9 · RTX 4070 · 3.5 K OLED","dell,xps,oled",t.AddDays(-18)),
-            P("ASUS ROG Zephyrus G14","asus-rog-g14",cats["laptops"].Id,
-              1499.00m,1349.00m,"ARG14",     Active,false,"ASUS",
-              "Ultra-slim gaming laptop with RX 7900S and 240 Hz display.",
-              "Ryzen 9 · RX 7900S · 240 Hz · 14\"","asus,rog,gaming",t.AddDays(-12)),
-            P("Microsoft Surface Pro 11","surface-pro-11",cats["laptops"].Id,
-              1599.00m,null,"MSP11",         Draft,false,"Microsoft",
-              "Versatile 2-in-1 with Snapdragon X Elite and Copilot+.",
-              "Snapdragon X Elite · 13\" OLED · Copilot+ PC","microsoft,surface,2-in-1",t.AddDays(-5)),
-            P("Lenovo ThinkPad X1 Carbon","thinkpad-x1-carbon",cats["laptops"].Id,
-              1649.00m,1449.00m,"TPXC",      Active,false,"Lenovo",
-              "Ultimate business laptop — thin, light, legendary keyboard.",
-              "Intel Ultra 7 · 14\" IPS · 57 Wh · MIL-SPEC","lenovo,thinkpad,business",t.AddDays(-20)),
-            // HEADPHONES
-            P("Sony WH-1000XM6","sony-wh-1000xm6",cats["headphones"].Id,
-              399.99m,349.99m,"SWXM6",       Active,true,"Sony",
-              "Industry-leading ANC with 40 h battery and Speak-to-Chat.",
-              "QN2e chip · LDAC · Multipoint · 40 h ANC","sony,anc,wireless",t.AddDays(-22)),
-            P("Apple AirPods Pro 3","airpods-pro-3",cats["headphones"].Id,
-              279.00m,null,"APP3",           Active,false,"Apple",
-              "Next-gen ANC earbuds with H2 chip and Personalised Spatial Audio.",
-              "H2 chip · ANC · 35 h total · USB-C","apple,airpods,tws",t.AddDays(-8)),
-            P("Bose QuietComfort 45","bose-qc45",cats["headphones"].Id,
-              329.00m,279.00m,"BQC45",       Active,false,"Bose",
-              "Legendary Bose comfort with class-leading noise rejection.",
-              "22 h ANC · EQ via app · Foldable","bose,anc,wireless",t.AddDays(-40)),
-            P("Sennheiser Momentum 4","sennheiser-momentum-4",cats["headphones"].Id,
-              349.00m,null,"SMT4",           Active,false,"Sennheiser",
-              "60 h audiophile headphones with adaptive ANC.",
-              "60 h ANC · Transparency · aptX Adaptive","sennheiser,audiophile",t.AddDays(-14)),
-            // TABLETS
-            P("iPad Pro 13\" M4","ipad-pro-13-m4",cats["tablets"].Id,
-              1299.00m,null,"IPP13M4",       Active,true,"Apple",
-              "Thinnest Apple product with Ultra Retina XDR and M4 chip.",
-              "M4 chip · Ultra Retina XDR · Apple Pencil Pro","apple,ipad,m4",t.AddDays(-35)),
-            P("Samsung Galaxy Tab S10+","samsung-tab-s10-plus",cats["tablets"].Id,
-              999.00m,899.00m,"SGT10P",      Active,false,"Samsung",
-              "Top Android tablet with Dynamic AMOLED and S Pen.",
-              "Snapdragon 8 Gen 3 · 12.4\" AMOLED · S Pen","samsung,android,tablet",t.AddDays(-28)),
-            // SMARTWATCHES
-            P("Apple Watch Series 10","apple-watch-series-10",cats["smartwatches"].Id,
-              499.00m,null,"AWS10",          Active,false,"Apple",
-              "Thinnest Apple Watch with crash detection and sleep apnea alerts.",
-              "S10 chip · ECG · Sleep Apnea · 18 h","apple,watch,health",t.AddDays(-16)),
-            P("Samsung Galaxy Watch 7","samsung-galaxy-watch-7",cats["smartwatches"].Id,
-              329.00m,279.00m,"SGW7",        Active,false,"Samsung",
-              "Advanced health monitoring with BioActive Sensor.",
-              "Exynos W1000 · BioActive · 40 h battery","samsung,health,watch",t.AddDays(-20)),
-            // FASHION
-            P("Levi's 501 Original Jeans","levis-501-jeans",cats["menClothing"].Id,
-              89.99m,69.99m,"LV501",         Active,false,"Levi's",
-              "The definitive straight-leg jeans since 1873.",
-              "100% cotton · Button fly · Straight fit","levis,jeans,denim",t.AddDays(-45)),
-            P("Ralph Lauren Polo Shirt","ralph-lauren-polo",cats["menClothing"].Id,
-              98.00m,null,"RLP",             Active,false,"Ralph Lauren",
-              "Iconic polo shirt in 100% piqué cotton.",
-              "100% cotton · Custom fit · Embroidered pony","polo,casual,classic",t.AddDays(-38)),
-            P("Nike Air Max 270","nike-air-max-270",cats["shoes"].Id,
-              150.00m,null,"NAM270",         Active,false,"Nike",
-              "Iconic lifestyle shoe with the tallest Air unit heel.",
-              "Max Air 270 · Mesh upper · Foam midsole","nike,air-max,sneakers",t.AddDays(-50)),
-            P("Adidas Ultraboost 24","adidas-ultraboost-24",cats["shoes"].Id,
-              190.00m,160.00m,"AUB24",       Active,true,"Adidas",
-              "Fastest Ultraboost yet — BOOST midsole + Continental rubber.",
-              "BOOST midsole · Continental grip · Primeknit+","adidas,running,boost",t.AddDays(-38)),
-            P("New Balance 1080 v13","nb-1080-v13",cats["shoes"].Id,
-              165.00m,null,"NB1080V13",      Active,false,"New Balance",
-              "Maximum-cushion daily trainer for long runs.",
-              "Fresh Foam X · Engineered mesh · 10 mm drop","new-balance,running",t.AddDays(-22)),
-            // HOME
-            P("Ergonomic Mesh Chair Pro","ergonomic-mesh-chair",cats["furniture"].Id,
-              499.00m,399.00m,"EMC-PRO",     Active,false,null,
-              "All-day comfort with lumbar support and breathable mesh back.",
-              "4D armrests · Lumbar · 150 kg · Mesh back","chair,office,ergonomic",t.AddDays(-60)),
-            P("Solid Oak Desk 160 cm","oak-desk-160",cats["furniture"].Id,
-              699.00m,null,"OAK-DESK",       Active,false,null,
-              "Minimalist Scandinavian desk in solid oak for home offices.",
-              "Solid oak · Steel legs · Cable channel","desk,oak,office",t.AddDays(-55)),
-            P("Velvet Accent Chair","velvet-accent-chair",cats["furniture"].Id,
-              389.00m,299.00m,"VAC",         Active,false,null,
-              "Mid-century modern accent chair in premium velvet.",
-              "Solid wood legs · Foam cushion · 4 colours","chair,velvet,living-room",t.AddDays(-42)),
-            P("KitchenAid Stand Mixer","kitchenaid-stand-mixer",cats["kitchen"].Id,
-              499.00m,429.00m,"KA-MIXER",    Active,false,"KitchenAid",
-              "Iconic 5-qt tilt-head stand mixer.",
-              "5 qt bowl · 10 speeds · 59 attachments","kitchenaid,baking,mixer",t.AddDays(-33)),
-            P("Instant Pot Duo 7-in-1","instant-pot-duo-7in1",cats["kitchen"].Id,
-              99.99m,79.99m,"IP-DUO",        Active,false,"Instant Pot",
-              "7-in-1 pressure cooker for fast healthy meals.",
-              "7-in-1 · 6 qt · 14 programs","instant-pot,pressure-cooker",t.AddDays(-28)),
-            // FITNESS
-            P("Adjustable Dumbbell Set","adj-dumbbell-set",cats["fitness"].Id,
-              299.00m,249.00m,"ADS-52",      Active,false,null,
-              "Space-saving dial-select dumbbells replacing 15 fixed pairs.",
-              "5–52.5 lb · Quick-select dial · Includes tray","dumbbells,fitness,gym",t.AddDays(-33)),
-            P("Yoga Mat Premium 6 mm","yoga-mat-6mm",cats["fitness"].Id,
-              49.99m,null,"YMP-6",           Active,false,null,
-              "Non-slip 6 mm TPE yoga mat with alignment print.",
-              "6 mm TPE · Non-slip · 183×61 cm","yoga,mat,fitness",t.AddDays(-20)),
-            P("Resistance Band Set","resistance-band-set",cats["fitness"].Id,
-              34.99m,27.99m,"RBS-5",         Active,false,null,
-              "Set of 5 resistance bands from light to extra heavy.",
-              "5 levels · Natural latex · Carry bag","bands,fitness,stretching",t.AddDays(-14)),
-            // SKINCARE
-            P("Vitamin C Brightening Serum","vitamin-c-serum",cats["skincare"].Id,
-              45.00m,35.00m,"VCS-30",        Active,false,"The Ordinary",
-              "10% pure Vitamin C with ferulic acid for radiant skin.",
-              "10% L-Ascorbic Acid · Ferulic acid · 30 ml","serum,vitamin-c,brightening",t.AddDays(-14)),
-            P("SPF 50+ Sunscreen Fluid","spf50-sunscreen",cats["skincare"].Id,
-              28.00m,null,"SPF50-100",       Active,false,"La Roche-Posay",
-              "Lightweight non-greasy daily mineral sunscreen.",
-              "SPF50+ PA++++ · Mineral filters · 100 ml","sunscreen,spf,daily",t.AddDays(-9)),
-            P("Hyaluronic Moisturiser","ha-moisturiser",cats["skincare"].Id,
-              39.00m,29.00m,"HAM-50",        Active,false,"CeraVe",
-              "48-hour hydration with hyaluronic acid and ceramides.",
-              "3× HA · Ceramides · 48 h hydration · 50 ml","moisturiser,ha,ceramides",t.AddDays(-18)),
-            // GAMING
-            P("PlayStation 5 Pro","ps5-pro",cats["consoles"].Id,
-              699.99m,null,"PS5P",           Active,true,"Sony",
-              "Next-gen PlayStation with 8 K gaming and 30% faster GPU.",
-              "AMD Zen 2+ · 60 CU GPU · 2 TB SSD · 8 K","sony,ps5,console",t.AddDays(-12)),
-            P("Xbox Series X","xbox-series-x",cats["consoles"].Id,
-              499.99m,null,"XBSX",           Active,false,"Microsoft",
-              "Most powerful Xbox ever — true 4 K at 120 fps.",
-              "AMD Zen 2 · 12 TFLOPS · 1 TB SSD","microsoft,xbox,4k",t.AddDays(-45)),
-            P("Nintendo Switch OLED","nintendo-switch-oled",cats["consoles"].Id,
-              349.99m,319.99m,"NSW-OLED",    Active,false,"Nintendo",
-              "Versatile hybrid console with vivid 7\" OLED screen.",
-              "7\" OLED · 64 GB · TV/Tabletop/Handheld","nintendo,switch,handheld",t.AddDays(-60)),
-        };
-            db.Products.AddRange(list);
-            await db.SaveChangesAsync();
-            return list;
-        }
-
-        // IMAGES ────────────────────────────────────────────────────────────────────
-
-        private static async Task SeedImagesAsync(EcommerceDbContext db, List<Product> products)
-        {
-            var seeds = new Dictionary<string, string[]>
+                new ProductVariant { Name = "Onyx Black / 256GB", SKU = "GS24-BLK-256", Price = 799.99m, Color = "Onyx Black",   Size = "256GB", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "Marble Gray / 256GB",SKU = "GS24-GRY-256", Price = 799.99m, Color = "Marble Gray",  Size = "256GB", IsActive = true, DisplayOrder = 2 },
+                new ProductVariant { Name = "Cobalt Violet / 512GB",SKU="GS24-VIO-512", Price = 899.99m, Color = "Cobalt Violet",Size = "512GB", IsActive = true, DisplayOrder = 3 },
+            });
+            AddVariants(pixel8Pro, new[]
             {
-                ["iphone-16-pro-max"] = ["iph16a", "iph16b", "iph16c"],
-                ["samsung-s25-ultra"] = ["s25a", "s25b"],
-                ["google-pixel-9-pro"] = ["px9a", "px9b"],
-                ["oneplus-13"] = ["op13a"],
-                ["iphone-15"] = ["iph15a", "iph15b"],
-                ["xiaomi-14-ultra"] = ["xmi14a"],
-                ["macbook-pro-14-m4"] = ["mbp14a", "mbp14b", "mbp14c"],
-                ["dell-xps-15"] = ["dxp15a", "dxp15b"],
-                ["asus-rog-g14"] = ["arog14a", "arog14b"],
-                ["thinkpad-x1-carbon"] = ["tpx1a"],
-                ["sony-wh-1000xm6"] = ["swxm6a", "swxm6b"],
-                ["airpods-pro-3"] = ["app3a"],
-                ["bose-qc45"] = ["bqc45a", "bqc45b"],
-                ["sennheiser-momentum-4"] = ["smt4a"],
-                ["ipad-pro-13-m4"] = ["ipp13a", "ipp13b"],
-                ["samsung-tab-s10-plus"] = ["sgt10a", "sgt10b"],
-                ["apple-watch-series-10"] = ["aws10a"],
-                ["samsung-galaxy-watch-7"] = ["sgw7a"],
-                ["levis-501-jeans"] = ["lv501a", "lv501b", "lv501c"],
-                ["ralph-lauren-polo"] = ["rlpa"],
-                ["nike-air-max-270"] = ["nam270a", "nam270b"],
-                ["adidas-ultraboost-24"] = ["aub24a", "aub24b"],
-                ["nb-1080-v13"] = ["nb1080a"],
-                ["ergonomic-mesh-chair"] = ["emca", "emcb"],
-                ["oak-desk-160"] = ["oaka"],
-                ["velvet-accent-chair"] = ["vaca", "vacb"],
-                ["kitchenaid-stand-mixer"] = ["kama", "kamb"],
-                ["instant-pot-duo-7in1"] = ["ipda"],
-                ["adj-dumbbell-set"] = ["adsa", "adsb"],
-                ["yoga-mat-6mm"] = ["ympa"],
-                ["resistance-band-set"] = ["rbsa"],
-                ["vitamin-c-serum"] = ["vcsa"],
-                ["spf50-sunscreen"] = ["spfa"],
-                ["ha-moisturiser"] = ["hama"],
-                ["ps5-pro"] = ["ps5a", "ps5b"],
-                ["xbox-series-x"] = ["xbsxa"],
-                ["nintendo-switch-oled"] = ["nswa", "nswb"],
-            };
-            var images = new List<ProductImage>();
-            foreach (var p in products)
+                new ProductVariant { Name = "Obsidian / 128GB", SKU = "PX8P-OBS-128", Price = 899.99m,  Color = "Obsidian", Size = "128GB", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "Porcelain / 256GB",SKU = "PX8P-POR-256", Price = 999.99m,  Color = "Porcelain",Size = "256GB", IsActive = true, DisplayOrder = 2 },
+            });
+            AddVariants(oneplus12, new[]
             {
-                if (!seeds.TryGetValue(p.Slug, out var ss)) continue;
-                for (int i = 0; i < ss.Length; i++)
-                    images.Add(new ProductImage
-                    {
-                        ProductId = p.Id,
-                        ImageUrl = $"https://picsum.photos/seed/{ss[i]}/600/600",
-                        AltText = $"{p.Name} {i + 1}",
-                        IsPrimary = i == 0,
-                        DisplayOrder = i,
-                        CreatedAt = DateTime.UtcNow
-                    });
+                new ProductVariant { Name = "Flowy Emerald / 256GB", SKU = "OP12-GRN-256", Price = 699.99m, Color = "Flowy Emerald", Size = "256GB", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "Silky Black / 512GB",   SKU = "OP12-BLK-512", Price = 799.99m, Color = "Silky Black",   Size = "512GB", IsActive = true, DisplayOrder = 2 },
+            });
+            AddVariants(xiaomi14Ultra, new[]
+            {
+                new ProductVariant { Name = "White / 512GB",  SKU = "XMI14U-WHT-512", Price = 1099.99m, Color = "White",  Size = "512GB", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "Black / 512GB",  SKU = "XMI14U-BLK-512", Price = 1099.99m, Color = "Black",  Size = "512GB", IsActive = true, DisplayOrder = 2 },
+                new ProductVariant { Name = "Black / 1TB",    SKU = "XMI14U-BLK-1T",  Price = 1299.99m, Color = "Black",  Size = "1TB",   IsActive = true, DisplayOrder = 3 },
+            });
+
+            // Laptops — RAM + Storage
+            AddVariants(macbookPro, new[]
+            {
+                new ProductVariant { Name = "16GB / 512GB", SKU = "MBP14-16-512", Price = 1999.99m, SalePrice = 1899.99m, Material = "16GB RAM", Size = "512GB SSD", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "32GB / 1TB",   SKU = "MBP14-32-1T",  Price = 2499.99m, Material = "32GB RAM", Size = "1TB SSD",   IsActive = true, DisplayOrder = 2 },
+                new ProductVariant { Name = "36GB / 2TB",   SKU = "MBP14-36-2T",  Price = 3199.99m, Material = "36GB RAM", Size = "2TB SSD",   IsActive = true, DisplayOrder = 3 },
+            });
+            AddVariants(dellXps, new[]
+            {
+                new ProductVariant { Name = "16GB / 512GB", SKU = "XPS15-16-512", Price = 1799.99m, Material = "16GB RAM", Size = "512GB SSD", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "32GB / 1TB",   SKU = "XPS15-32-1T",  Price = 2199.99m, Material = "32GB RAM", Size = "1TB SSD",   IsActive = true, DisplayOrder = 2 },
+            });
+            AddVariants(rogZephyrus, new[]
+            {
+                new ProductVariant { Name = "16GB / 512GB", SKU = "ROGG14-16-512", Price = 1499.99m, SalePrice = 1399.99m, Material = "16GB RAM", Size = "512GB SSD", Color = "Eclipse Gray", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "32GB / 1TB",   SKU = "ROGG14-32-1T",  Price = 1799.99m, Material = "32GB RAM", Size = "1TB SSD",   Color = "Moonlight White", IsActive = true, DisplayOrder = 2 },
+            });
+            AddVariants(thinkpad, new[]
+            {
+                new ProductVariant { Name = "16GB / 512GB", SKU = "TPX1C-16-512", Price = 1599.99m, Material = "16GB RAM", Size = "512GB SSD", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "32GB / 1TB",   SKU = "TPX1C-32-1T",  Price = 1999.99m, Material = "32GB RAM", Size = "1TB SSD",   IsActive = true, DisplayOrder = 2 },
+            });
+            AddVariants(hpSpectre, new[]
+            {
+                new ProductVariant { Name = "16GB / 512GB / Nightfall Black", SKU = "HPX360-16-512-BLK", Price = 1399.99m, SalePrice = 1299.99m, Color = "Nightfall Black", Material = "16GB RAM", Size = "512GB SSD", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "16GB / 1TB / Poseidon Blue",     SKU = "HPX360-16-1T-BLU",  Price = 1599.99m, Color = "Poseidon Blue",  Material = "16GB RAM", Size = "1TB SSD",   IsActive = true, DisplayOrder = 2 },
+            });
+
+            // Tablets — Storage + Color
+            AddVariants(ipadPro, new[]
+            {
+                new ProductVariant { Name = "Silver / 256GB", SKU = "IPDP12-SLV-256", Price = 1099.99m, Color = "Silver",      Size = "256GB", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "Space Gray / 512GB", SKU = "IPDP12-SPG-512", Price = 1299.99m, Color = "Space Gray", Size = "512GB", IsActive = true, DisplayOrder = 2 },
+            });
+            AddVariants(galaxyTabS9, new[]
+            {
+                new ProductVariant { Name = "Beige / 128GB",  SKU = "TABS9-BEI-128", Price = 799.99m, SalePrice = 749.99m, Color = "Beige",     Size = "128GB", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "Graphite / 256GB",SKU = "TABS9-GRF-256",Price = 949.99m, Color = "Graphite",   Size = "256GB", IsActive = true, DisplayOrder = 2 },
+            });
+            AddVariants(surfacePro, new[]
+            {
+                new ProductVariant { Name = "Platinum / 256GB", SKU = "SFP9-PLT-256", Price = 1299.99m, Color = "Platinum",    Size = "256GB", IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "Sapphire / 512GB", SKU = "SFP9-SAP-512", Price = 1599.99m, Color = "Sapphire",    Size = "512GB", IsActive = true, DisplayOrder = 2 },
+            });
+
+            // Audio — Color only
+            AddVariants(sonyWH, new[]
+            {
+                new ProductVariant { Name = "Black",  SKU = "WH1000XM5-BLK", Price = 349.99m, SalePrice = 279.99m, Color = "Black",  IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "Silver", SKU = "WH1000XM5-SLV", Price = 349.99m, SalePrice = 279.99m, Color = "Silver", IsActive = true, DisplayOrder = 2 },
+            });
+            AddVariants(airpodsPro, new[]
+            {
+                new ProductVariant { Name = "White (USB-C)", SKU = "APP2-WHT", Price = 249.99m, Color = "White", IsActive = true, DisplayOrder = 1 },
+            });
+            AddVariants(boseQC, new[]
+            {
+                new ProductVariant { Name = "Black",        SKU = "QC45-BLK",  Price = 329.99m, SalePrice = 299.99m, Color = "Black",        IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "White Smoke",  SKU = "QC45-WHT",  Price = 329.99m, SalePrice = 299.99m, Color = "White Smoke",  IsActive = true, DisplayOrder = 2 },
+            });
+            AddVariants(jblCharge, new[]
+            {
+                new ProductVariant { Name = "Black",  SKU = "JBL-CHG5-BLK", Price = 179.99m, SalePrice = 149.99m, Color = "Black",  IsActive = true, DisplayOrder = 1 },
+                new ProductVariant { Name = "Blue",   SKU = "JBL-CHG5-BLU", Price = 179.99m, SalePrice = 149.99m, Color = "Blue",   IsActive = true, DisplayOrder = 2 },
+                new ProductVariant { Name = "Red",    SKU = "JBL-CHG5-RED", Price = 179.99m, SalePrice = 149.99m, Color = "Red",    IsActive = true, DisplayOrder = 3 },
+            });
+
+            // Fashion — Color + Size
+            string[] shirtSizes  = ["S", "M", "L", "XL"];
+            string[] pantsWaists = ["W30", "W32", "W34", "W36"];
+
+            // Helper: dùng index C0/C1/C2 để tránh duplicate SKU khi color có prefix giống nhau
+            static void AddColorSizeVariants(
+                List<ProductVariant> list, Product product,
+                string prefix, string[] colorList, string[] sizeList,
+                decimal price, decimal? salePrice = null, string? material = null)
+            {
+                for (int ci = 0; ci < colorList.Length; ci++)
+                    for (int si = 0; si < sizeList.Length; si++)
+                        list.Add(new ProductVariant
+                        {
+                            ProductId    = product.Id,
+                            Name         = $"{colorList[ci]} / {sizeList[si]}",
+                            SKU          = $"{prefix}-C{ci}-{sizeList[si]}",   // ← C0/C1/C2 unique
+                            Price        = price,
+                            SalePrice    = salePrice,
+                            Color        = colorList[ci],
+                            Size         = sizeList[si],
+                            Material     = material,
+                            IsActive     = true,
+                            DisplayOrder = si + 1
+                        });
             }
-            db.ProductImages.AddRange(images);
+
+            // Men's Clothing
+            AddColorSizeVariants(allVariants, tshirtMen,   "TSH",  ["Black", "White", "Navy"],         shirtSizes,  29.99m, 24.99m, "Cotton");
+            AddColorSizeVariants(allVariants, denimJacket, "DNM",  ["Blue", "Black", "Light Blue"],     shirtSizes,  89.99m, 74.99m);
+            AddColorSizeVariants(allVariants, oxfordShirt, "OXF",  ["White", "Light Blue", "Pink"],     shirtSizes,  49.99m);
+
+            // Chinos — Color × Waist
+            AddColorSizeVariants(allVariants, chinosMen,   "CHN",  ["Khaki", "Navy", "Olive"],          pantsWaists, 59.99m, material: "Stretch Cotton");
+
+            // Women's Clothing
+            AddColorSizeVariants(allVariants, floralDress,   "WD",  ["Floral Blue", "Floral Pink", "Floral Yellow"], ["XS", "S", "M", "L"],       69.99m, 54.99m);
+            AddColorSizeVariants(allVariants, yogaLeggings,  "WL",  ["Black", "Gray", "Navy"],                       ["XS", "S", "M", "L", "XL"], 44.99m, 39.99m, "Stretch Fabric");
+            AddColorSizeVariants(allVariants, woolBlazer,    "WB",  ["Black", "Camel", "Navy"],                      ["XS", "S", "M", "L"],       119.99m, material: "Wool Blend");
+            AddColorSizeVariants(allVariants, cropHoodie,    "WH",  ["Pink", "Gray", "Lavender"],                    ["XS", "S", "M", "L"],       54.99m, 44.99m, "Fleece");
+
+            // Shoes — Color × US Size
+            string[] usSizes = ["7", "8", "9", "10", "11", "12"];
+            AddColorSizeVariants(allVariants, nikeAirMax, "AM270", ["White/Black", "Black/Red"],         usSizes, 149.99m, 129.99m);
+            AddColorSizeVariants(allVariants, adidasUB,   "UB23",  ["Core Black", "Cloud White"],        usSizes, 179.99m);
+            AddColorSizeVariants(allVariants, converse,   "CT",    ["Classic White", "Classic Black", "Navy"], usSizes, 64.99m);
+
+            await db.ProductVariants.AddRangeAsync(allVariants);
             await db.SaveChangesAsync();
-        }
 
-        // VARIANTS ──────────────────────────────────────────────────────────────────
+            logger.LogInformation("✅ Seeded {Count} ProductVariants", allVariants.Count);
 
-        private static async Task SeedVariantsAsync(EcommerceDbContext db, List<Product> products)
-        {
-            var t = DateTime.UtcNow;
-            var map = products.ToDictionary(p => p.Slug!);
-            var vl = new List<ProductVariant>();
+            // ── 5. INVENTORIES ───────────────────────────────────────────
+            var inventories = new List<Inventory>();
 
-            void V(string slug, params (string n, string sku, decimal price, string? col, string? sz)[] vs)
+            // Products with variants → one Inventory per variant
+            foreach (var variant in allVariants)
             {
-                if (!map.TryGetValue(slug, out var p)) return;
-                for (int i = 0; i < vs.Length; i++)
+                var qty = Random.Shared.Next(5, 120);
+                var reserved = Random.Shared.Next(0, Math.Max(1, qty / 5));
+                inventories.Add(new Inventory
                 {
-                    var v = vs[i];
-                    vl.Add(new ProductVariant
-                    {
-                        ProductId = p.Id,
-                        Name = v.n,
-                        SKU = v.sku,
-                        Price = v.price,
-                        Color = v.col,
-                        Size = v.sz,
-                        IsActive = true,
-                        DisplayOrder = i,
-                        CreatedAt = t
-                    });
-                }
+                    ProductId         = variant.ProductId,
+                    ProductVariantId  = variant.Id,
+                    Quantity          = qty,
+                    ReservedQuantity  = reserved,
+                    LowStockThreshold = 10,
+                    WarehouseLocation = $"WH-{(char)('A' + Random.Shared.Next(0, 5))}{Random.Shared.Next(1, 10):D2}",
+                    LastStockUpdate   = DateTime.UtcNow
+                });
             }
 
-            // Smartphones — storage
-            V("iphone-16-pro-max",
-                ("128 GB / Natural Titanium", "IPH16PM-128-NAT", 1099.99m, "#d4c5af", "128 GB"),
-                ("256 GB / Black Titanium", "IPH16PM-256-BLK", 1199.99m, "#2c2c2e", "256 GB"),
-                ("256 GB / White Titanium", "IPH16PM-256-WHT", 1199.99m, "#f5f5f0", "256 GB"),
-                ("512 GB / Desert Titanium", "IPH16PM-512-DST", 1399.99m, "#c9b99a", "512 GB"),
-                ("1 TB / Black Titanium", "IPH16PM-1TB-BLK", 1599.99m, "#2c2c2e", "1 TB"));
-            V("samsung-s25-ultra",
-                ("256 GB / Titanium Black", "SGS25U-256-BLK", 1199.99m, "#1a1a1a", "256 GB"),
-                ("512 GB / Titanium Silver", "SGS25U-512-SLV", 1349.99m, "#c0c0c0", "512 GB"),
-                ("1 TB / Titanium Gray", "SGS25U-1TB-GRY", 1549.99m, "#808080", "1 TB"));
-            V("google-pixel-9-pro",
-                ("128 GB / Obsidian", "GPX9P-128-OBS", 899.00m, "#2d2d2d", "128 GB"),
-                ("256 GB / Porcelain", "GPX9P-256-POR", 999.00m, "#f0ede8", "256 GB"),
-                ("512 GB / Hazel", "GPX9P-512-HAZ", 1099.00m, "#7a7d6e", "512 GB"));
-            // Laptops — spec tiers
-            V("macbook-pro-14-m4",
-                ("M4 / 16 GB / 512 GB", "MBP14-M4-16-512", 1999.00m, "#e8e8e8", "512 GB"),
-                ("M4 Pro / 24 GB / 1 TB", "MBP14-M4P-24-1T", 2399.00m, "#e8e8e8", "1 TB"),
-                ("M4 Max / 36 GB / 1 TB", "MBP14-M4X-36-1T", 3199.00m, "#2d2d2d", "1 TB"));
-            V("dell-xps-15",
-                ("i7 / 16 GB / 512 GB", "DXP15-16-512", 1599.00m, "#1c1c1c", "512 GB"),
-                ("i9 / 32 GB / 1 TB", "DXP15-32-1TB", 1799.00m, "#1c1c1c", "1 TB"));
-            V("asus-rog-g14",
-                ("16 GB / 512 GB", "ARG14-16-512", 1349.00m, "#1a1a1a", "512 GB"),
-                ("32 GB / 1 TB", "ARG14-32-1TB", 1499.00m, "#1a1a1a", "1 TB"));
-            // Headphones — colour
-            V("sony-wh-1000xm6",
-                ("Midnight Black", "SWXM6-BLK", 399.99m, "#1a1a1a", null),
-                ("Platinum Silver", "SWXM6-SLV", 399.99m, "#c0c0c0", null),
-                ("Sage Green", "SWXM6-GRN", 399.99m, "#8fbc8f", null));
-            V("bose-qc45",
-                ("White Smoke", "BQC45-WHT", 329.00m, "#f5f5f0", null),
-                ("Midnight Blue", "BQC45-BLU", 329.00m, "#191970", null));
-            // Jeans — W/L
-            V("levis-501-jeans",
-                ("W28/L30 Dark Wash", "LV501-28-30-D", 89.99m, "#1a237e", "W28/L30"),
-                ("W30/L32 Dark Wash", "LV501-30-32-D", 89.99m, "#1a237e", "W30/L32"),
-                ("W32/L32 Med Wash", "LV501-32-32-M", 89.99m, "#3949ab", "W32/L32"),
-                ("W34/L34 Dark Wash", "LV501-34-34-D", 89.99m, "#1a237e", "W34/L34"),
-                ("W36/L34 Light Wash", "LV501-36-34-L", 89.99m, "#9fa8da", "W36/L34"));
-            // Polo — colour + size
-            V("ralph-lauren-polo",
-                ("White / S", "RLP-WHT-S", 98.00m, "#ffffff", "S"),
-                ("White / M", "RLP-WHT-M", 98.00m, "#ffffff", "M"),
-                ("White / L", "RLP-WHT-L", 98.00m, "#ffffff", "L"),
-                ("Navy / M", "RLP-NAV-M", 98.00m, "#001f5b", "M"),
-                ("Navy / L", "RLP-NAV-L", 98.00m, "#001f5b", "L"),
-                ("Red / M", "RLP-RED-M", 98.00m, "#b71c1c", "M"),
-                ("Red / L", "RLP-RED-L", 98.00m, "#b71c1c", "L"));
-            // Shoes — US size + colour
-            V("nike-air-max-270",
-                ("US 7 / White", "NAM270-7-W", 150.00m, "#f5f5f5", "US 7"),
-                ("US 8 / White", "NAM270-8-W", 150.00m, "#f5f5f5", "US 8"),
-                ("US 9 / White", "NAM270-9-W", 150.00m, "#f5f5f5", "US 9"),
-                ("US 9 / Black", "NAM270-9-B", 150.00m, "#212121", "US 9"),
-                ("US 10 / White", "NAM270-10-W", 150.00m, "#f5f5f5", "US 10"),
-                ("US 10 / Black", "NAM270-10-B", 150.00m, "#212121", "US 10"),
-                ("US 11 / Black", "NAM270-11-B", 150.00m, "#212121", "US 11"));
-            V("adidas-ultraboost-24",
-                ("US 7 / Black", "AUB24-7-BK", 190.00m, "#212121", "US 7"),
-                ("US 8 / Black", "AUB24-8-BK", 190.00m, "#212121", "US 8"),
-                ("US 9 / Black", "AUB24-9-BK", 190.00m, "#212121", "US 9"),
-                ("US 9 / Cloud White", "AUB24-9-WH", 190.00m, "#fafafa", "US 9"),
-                ("US 10 / Black", "AUB24-10-BK", 190.00m, "#212121", "US 10"),
-                ("US 10 / Cloud White", "AUB24-10-WH", 190.00m, "#fafafa", "US 10"),
-                ("US 11 / Cloud White", "AUB24-11-WH", 190.00m, "#fafafa", "US 11"));
-            V("nb-1080-v13",
-                ("US 8 / Black", "NB1080-8-BK", 165.00m, "#212121", "US 8"),
-                ("US 9 / Black", "NB1080-9-BK", 165.00m, "#212121", "US 9"),
-                ("US 10 / Black", "NB1080-10-BK", 165.00m, "#212121", "US 10"),
-                ("US 10 / White", "NB1080-10-WH", 165.00m, "#fafafa", "US 10"),
-                ("US 11 / Black", "NB1080-11-BK", 165.00m, "#212121", "US 11"));
-            // Velvet chair colours
-            V("velvet-accent-chair",
-                ("Dusty Pink", "VAC-PINK", 389.00m, "#c48b9f", null),
-                ("Forest Green", "VAC-GRN", 389.00m, "#2e7d32", null),
-                ("Navy Blue", "VAC-NAV", 389.00m, "#1a237e", null),
-                ("Charcoal", "VAC-CHR", 389.00m, "#424242", null));
-            // Yoga mat colours
-            V("yoga-mat-6mm",
-                ("Purple", "YMP-PUR", 49.99m, "#9c27b0", null),
-                ("Sage Green", "YMP-GRN", 49.99m, "#4caf50", null),
-                ("Slate Gray", "YMP-GRY", 49.99m, "#607d8b", null),
-                ("Burnt Orange", "YMP-ORG", 49.99m, "#bf360c", null));
-            // Nintendo colours
-            V("nintendo-switch-oled",
-                ("White", "NSW-OLED-WHT", 349.99m, "#f5f5f5", null),
-                ("Neon Red/Blue", "NSW-OLED-NRB", 349.99m, "#e53935", null));
-
-            db.ProductVariants.AddRange(vl);
-        }
-
-        // INVENTORY ─────────────────────────────────────────────────────────────────
-
-        private static async Task SeedInventoryAsync(EcommerceDbContext db, List<Product> products)
-        {
-            var t = DateTime.UtcNow;
-            var variants = await db.ProductVariants.IgnoreQueryFilters().ToListAsync();
-            var byProd = variants.GroupBy(v => v.ProductId).ToDictionary(g => g.Key, g => g.ToList());
-            var inv = new List<Inventory>();
-
-            foreach (var p in products)
+            // Products WITHOUT variants (furniture, kitchenware, fitness, outdoor, skincare)
+            // products index 28..39
+            var noVariantProducts = products.Skip(28).ToList();
+            foreach (var p in noVariantProducts)
             {
-                if (byProd.TryGetValue(p.Id, out var pvs))
-                    foreach (var pv in pvs)
-                        inv.Add(Inv(p.Id, pv.Id, StockQty(p.Slug!, pv.Name), StockRes(p.Slug!), 3, t));
-                else
-                    inv.Add(Inv(p.Id, null, StockQty(p.Slug!, null), StockRes(p.Slug!), 5, t));
+                var qty = Random.Shared.Next(5, 60);
+                inventories.Add(new Inventory
+                {
+                    ProductId         = p.Id,
+                    ProductVariantId  = null,
+                    Quantity          = qty,
+                    ReservedQuantity  = Random.Shared.Next(0, Math.Max(1, qty / 5)),
+                    LowStockThreshold = 5,
+                    WarehouseLocation = $"WH-{(char)('A' + Random.Shared.Next(0, 5))}{Random.Shared.Next(1, 10):D2}",
+                    LastStockUpdate   = DateTime.UtcNow
+                });
             }
-            db.Inventories.AddRange(inv);
+
+            await db.Inventories.AddRangeAsync(inventories);
+            await db.SaveChangesAsync();
+
+            logger.LogInformation("✅ Seeded {Count} Inventories", inventories.Count);
+            logger.LogInformation("🎉 Database seeding completed successfully!");
         }
-
-        // HELPERS ───────────────────────────────────────────────────────────────────
-
-        private static Category C(string name, string slug, int? pid, string desc, int ord, DateTime t, bool active = true)
-            => new() { Name = name, Slug = slug, ParentId = pid, Description = desc, DisplayOrder = ord, IsActive = active, CreatedAt = t };
-
-        private static Product P(string name, string slug, int catId,
-            decimal bp, decimal? sp, string sku, ProductStatus st, bool feat, string? brand,
-            string desc, string shortDesc, string tags, DateTime created)
-            => new()
-            {
-                Name = name,
-                Slug = slug,
-                CategoryId = catId,
-                BasePrice = bp,
-                SalePrice = sp,
-                SKU = sku,
-                Status = st,
-                IsFeatured = feat,
-                Brand = brand,
-                Description = desc,
-                ShortDescription = shortDesc,
-                Tags = tags,
-                CreatedAt = created,
-                UpdatedAt = created
-            };
-
-        private static Inventory Inv(int pid, int? vid, int qty, int res, int thr, DateTime t)
-            => new()
-            {
-                ProductId = pid,
-                ProductVariantId = vid,
-                Quantity = qty,
-                ReservedQuantity = res,
-                LowStockThreshold = thr,
-                WarehouseLocation = Locs[Rnd.Next(Locs.Length)],
-                LastStockUpdate = t.AddDays(-Rnd.Next(1, 14)),
-                CreatedAt = t
-            };
-
-        private static int StockQty(string slug, string? variantName) => slug switch
+        catch (Exception ex)
         {
-            "iphone-15" => 0,
-            "surface-pro-11" => 2,
-            "airpods-pro-3" => 3,
-            "spf50-sunscreen" => 4,
-            "resistance-band-set" => 1,
-            _ when variantName?.Contains("1 TB") == true => 5,
-            _ when variantName?.Contains("Desert") == true => 0,
-            _ => Rnd.Next(12, 80)
-        };
-        private static int StockRes(string slug) => slug switch
-        {
-            "iphone-15" => 0,
-            "surface-pro-11" => 0,
-            _ => Rnd.Next(0, 5)
-        };
+            logger.LogError(ex, "❌ Error during database seeding");
+            throw;
+        }
+    }
 
-        private static readonly Random Rnd = new(42);
-        private static readonly string[] Locs = ["A-01", "A-02", "A-03", "B-01", "B-02", "C-01", "C-02", "D-01", "D-02"];
-        private static ProductStatus Active => ProductStatus.Active;
-        private static ProductStatus Inactive => ProductStatus.Inactive;
-        private static ProductStatus Draft => ProductStatus.Draft;
+
+
+
     }
 }

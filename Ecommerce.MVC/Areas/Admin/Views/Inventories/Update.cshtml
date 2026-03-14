@@ -1,0 +1,70 @@
+@using Ecommerce.Application.DTOs.Inventory
+@model UpdateInventoryDto
+@{
+    ViewData["Title"] = "Edit Inventory";
+}
+
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-semibold mb-0">Edit Inventory</h4>
+            <small class="text-muted">@ViewBag.ProductName</small>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back
+        </a>
+    </div>
+
+    <div class="row justify-content-start">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-semibold">Stock Settings</h6>
+                </div>
+                <div class="card-body p-4">
+
+                    <form asp-action="Update" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small mb-3"></div>
+                        <input asp-for="Id" type="hidden" />
+
+                        <div class="mb-3">
+                            <label asp-for="Quantity" class="form-label fw-medium small">Total Quantity</label>
+                            <input asp-for="Quantity" type="number" min="0" class="form-control" />
+                            <span asp-validation-for="Quantity" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="ReservedQuantity" class="form-label fw-medium small">Reserved Quantity</label>
+                            <input asp-for="ReservedQuantity" type="number" min="0" class="form-control" />
+                            <div class="form-text">Cannot exceed total quantity.</div>
+                            <span asp-validation-for="ReservedQuantity" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="LowStockThreshold" class="form-label fw-medium small">Low Stock Threshold</label>
+                            <input asp-for="LowStockThreshold" type="number" min="0" class="form-control" />
+                            <div class="form-text">Alert triggers when available stock falls at or below this value.</div>
+                            <span asp-validation-for="LowStockThreshold" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="WarehouseLocation" class="form-label fw-medium small">Warehouse Location</label>
+                            <input asp-for="WarehouseLocation" type="text" class="form-control"
+                                placeholder="e.g. Shelf A-03" />
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-dark btn-sm px-4">Save Changes</button>
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Cancel</a>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts { @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); } }

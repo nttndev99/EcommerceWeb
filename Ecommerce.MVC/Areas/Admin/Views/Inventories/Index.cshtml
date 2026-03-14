@@ -1,0 +1,286 @@
+@model Ecommerce.Application.Common.PagedResult<Ecommerce.Application.DTOs.Inventory.InventoryDto>
+@using Ecommerce.Application.DTOs.Inventory
+
+@{
+    ViewData["Title"] = "Inventory Management";
+    var filter = ViewBag.Filter as InventoryFilterParams ?? new InventoryFilterParams();
+
+    // Nav pill active logic
+    bool isAll        = filter.IsLowStock == null && filter.IsOutOfStock == null;
+    bool isLowNav     = filter.IsLowStock == true  && filter.IsOutOfStock == null;
+    bool isOutNav     = filter.IsOutOfStock == true && filter.IsLowStock == null;
+
+    string SortLink(string col) =>
+        filter.SortBy == col && filter.SortDirection == "asc" ? "desc" : "asc";
+
+    string SortIcon(string col)
+    {
+        if (filter.SortBy != col) return "bi bi-arrow-down-up text-muted opacity-50";
+        return filter.SortDirection == "asc" ? "bi bi-arrow-up" : "bi bi-arrow-down";
+    }
+
+    Dictionary<string, string> RouteData(string sortCol) => new()
+    {
+        ["sortBy"]        = sortCol,
+        ["sortDirection"] = SortLink(sortCol),
+        ["search"]        = filter.Search ?? "",
+        ["pageNumber"]    = "1",
+        ["pageSize"]      = filter.PageSize.ToString()
+    };
+
+    Dictionary<string, string> PageRoute(int page) => new()
+    {
+        ["pageNumber"]    = page.ToString(),
+        ["pageSize"]      = filter.PageSize.ToString(),
+        ["search"]        = filter.Search ?? "",
+        ["sortBy"]        = filter.SortBy ?? "",
+        ["sortDirection"] = filter.SortDirection ?? ""
+    };
+}
+
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-semibold mb-0">Inventory</h4>
+            <small class="text-muted">Monitor and adjust stock levels</small>
+        </div>
+        <a asp-action="LowStock" class="btn btn-warning btn-sm px-3">
+            <i class="bi bi-exclamation-triangle me-1"></i> Low Stock
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+
+        <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center gap-2 py-3">
+
+            <ul class="nav nav-pills me-auto gap-1">
+                <li class="nav-item">
+                    <a asp-action="Index"
+                        asp-route-pageSize="@filter.PageSize"
+                        asp-route-search="@filter.Search"
+                        asp-route-sortBy="@filter.SortBy"
+                        asp-route-sortDirection="@filter.SortDirection"
+                        class="nav-link px-3 py-1 @(isAll ? "active" : "text-muted")">
+                        All
+                        <span class="badge @(isAll ? "bg-white text-dark" : "bg-dark") ms-1">
+                            @ViewBag.TotalAll
+                        </span>                    
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a asp-action="Index"
+                        asp-route-isLowStock="true"
+                        asp-route-pageSize="@filter.PageSize"
+                        asp-route-search="@filter.Search"
+                        asp-route-sortBy="@filter.SortBy"
+                        asp-route-sortDirection="@filter.SortDirection"
+                        class="nav-link px-3 py-1 @(isLowNav ? "active" : "text-muted")">
+                        <i class="bi bi-exclamation-triangle me-1"></i> Low Stock
+                        <span class="badge @(isLowNav ? "bg-white text-dark" : "bg-dark") ms-1">
+                            @ViewBag.TotalLowStock
+                        </span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a asp-action="Index"
+                        asp-route-isOutOfStock="true"
+                        asp-route-pageSize="@filter.PageSize"
+                        asp-route-search="@filter.Search"
+                        asp-route-sortBy="@filter.SortBy"
+                        asp-route-sortDirection="@filter.SortDirection"
+                        class="nav-link px-3 py-1 @(isOutNav ? "active" : "text-muted")">
+                        <i class="bi bi-x-circle me-1"></i> Out of Stock
+                        <span class="badge @(isOutNav ? "bg-white text-dark" : "bg-dark") ms-1">
+                            @ViewBag.TotalOutOfStock
+                        </span>
+                    </a>
+                </li>
+            </ul>
+
+            <form method="get" class="d-flex align-items-center flex-wrap gap-2">
+                <div class="input-group input-group-sm" style="width:220px">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" value="@filter.Search"
+                        class="form-control border-start-0 ps-0"
+                        placeholder="Search product / location…" />
+                </div>
+
+                <select name="isLowStock" class="form-select form-select-sm" style="width:140px"
+                        onchange="this.form.submit()">
+                    <option value="">All stock</option>
+                    <option value="true"  selected="@(filter.IsLowStock == true  ? "selected" : null)">Low stock</option>
+                    <option value="false" selected="@(filter.IsLowStock == false ? "selected" : null)">Normal</option>
+                </select>
+
+                <select name="isOutOfStock" class="form-select form-select-sm" style="width:140px"
+                        onchange="this.form.submit()">
+                    <option value="">All availability</option>
+                    <option value="true"  selected="@(filter.IsOutOfStock == true  ? "selected" : null)">Out of stock</option>
+                    <option value="false" selected="@(filter.IsOutOfStock == false ? "selected" : null)">In stock</option>
+                </select>
+
+                <select name="pageSize" class="form-select form-select-sm" style="width:110px"
+                        onchange="this.form.submit()">
+                    @foreach (var size in new[] { 10, 25, 50 })
+                    {
+                        <option value="@size" selected="@(filter.PageSize == size ? "selected" : null)">@size / page</option>
+                    }
+                </select>
+
+                <input type="hidden" name="sortBy"        value="@filter.SortBy" />
+                <input type="hidden" name="sortDirection" value="@filter.SortDirection" />
+
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Apply</button>
+            </form>
+        </div>
+
+        @if (!Model.Items.Any())
+        {
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                <p class="mb-0">No inventory records found.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light text-uppercase" style="font-size:.7rem;letter-spacing:.05em">
+                        <tr>
+                            <th>
+                                <a asp-action="Index" asp-all-route-data="@RouteData("ProductName")"
+                                    class="text-dark text-decoration-none d-flex align-items-center gap-1">
+                                    Product <i class="@SortIcon("ProductName")"></i>
+                                </a>
+                            </th>
+                            <th>Variant</th>
+                            <th>
+                                <a asp-action="Index" asp-all-route-data="@RouteData("quantity")"
+                                    class="text-dark text-decoration-none d-flex align-items-center gap-1">
+                                    Total Qty <i class="@SortIcon("quantity")"></i>
+                                </a>
+                            </th>
+                            <th>Reserved</th>
+                            <th>
+                                <a asp-action="Index" asp-all-route-data="@RouteData("available")"
+                                    class="text-dark text-decoration-none d-flex align-items-center gap-1">
+                                    Available <i class="@SortIcon("available")"></i>
+                                </a>
+                            </th>
+                            <th>Threshold</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>
+                                <a asp-action="Index" asp-all-route-data="@RouteData("lastupdate")"
+                                   class="text-dark text-decoration-none d-flex align-items-center gap-1">
+                                    Updated <i class="@SortIcon("lastupdate")"></i>
+                                </a>
+                            </th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td class="fw-medium">@item.ProductName</td>
+                                <td class="text-muted">@(item.VariantName ?? "—")</td>
+                                <td>@item.Quantity</td>
+                                <td class="text-muted">@item.ReservedQuantity</td>
+                                <td>
+                                    <span class="fw-semibold @(item.IsOutOfStock ? "text-danger" : item.IsLowStock ? "text-warning" : "text-success")">
+                                        @item.AvailableQuantity
+                                    </span>
+                                </td>
+                                <td class="text-muted">@item.LowStockThreshold</td>
+                                <td class="text-muted">@(item.WarehouseLocation ?? "—")</td>
+                                <td>
+                                    @if (item.IsOutOfStock)
+                                    {
+                                        <span class="badge bg-danger">Out of stock</span>
+                                    }
+                                    else if (item.IsLowStock)
+                                    {
+                                        <span class="badge bg-warning text-dark">Low stock</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">In stock</span>
+                                    }
+                                </td>
+                                <td class="text-muted text-nowrap">
+                                    @item.LastStockUpdate.ToString("dd/MM/yyyy")
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        <a asp-action="Details" asp-route-id="@item.Id"
+                                            class="btn btn-light btn-sm" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Update" asp-route-id="@item.Id"
+                                            class="btn btn-light btn-sm" title="Update">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a asp-action="Adjust" asp-route-id="@item.Id"
+                                            class="btn btn-light btn-sm" title="Adjust stock">
+                                            <i class="bi bi-arrow-left-right"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer bg-white border-top d-flex align-items-center justify-content-between flex-wrap gap-2 py-3">
+                <small class="text-muted">
+                    Showing
+                    <strong>@(((Model.PageNumber - 1) * Model.PageSize) + 1)</strong>–<strong>@(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount))</strong>
+                    of <strong>@Model.TotalCount</strong> records
+                </small>
+
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 gap-1">
+                        <li class="page-item @(Model.PageNumber <= 1 ? "disabled" : "")">
+                            <a class="page-link rounded" asp-action="Index"
+                                asp-all-route-data="@PageRoute(Model.PageNumber - 1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        @for (int p = Math.Max(1, Model.PageNumber - 2); p <= Math.Min(Model.TotalPages, Model.PageNumber + 2); p++)
+                        {
+                            <li class="page-item @(p == Model.PageNumber ? "active" : "")">
+                                <a class="page-link rounded" asp-action="Index"
+                                asp-all-route-data="@PageRoute(p)">@p</a>
+                            </li>
+                        }
+
+                        <li class="page-item @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link rounded" asp-action="Index"
+                                asp-all-route-data="@PageRoute(Model.PageNumber + 1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_InventoryToast")
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.toast').forEach(el => {
+                new bootstrap.Toast(el, { delay: 3500 }).show();
+            });
+        });
+    </script>
+}

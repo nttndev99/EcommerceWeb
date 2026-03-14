@@ -135,4 +135,94 @@ namespace Ecommerce.Infrastructure.Persistence
         }
     }
 
+    public class OrderConfiguration : IEntityTypeConfiguration<Order>
+    {
+        public void Configure(EntityTypeBuilder<Order> builder)
+        {
+            builder.ToTable("Orders");
+    
+            builder.HasKey(o => o.Id);
+    
+            builder.Property(o => o.OrderCode)
+                .IsRequired()
+                .HasMaxLength(30);
+    
+            builder.HasIndex(o => o.OrderCode)
+                .IsUnique();
+    
+            builder.Property(o => o.UserId)
+                .IsRequired()
+                .HasMaxLength(450);
+    
+            // ── Decimal precision ──────────────────────
+            builder.Property(o => o.SubTotal)
+                .HasPrecision(18, 2);
+    
+            builder.Property(o => o.ShippingFee)
+                .HasPrecision(18, 2);
+    
+            builder.Property(o => o.DiscountAmount)
+                .HasPrecision(18, 2);
+    
+            builder.Property(o => o.Total)
+                .HasPrecision(18, 2);
+    
+            // ── String lengths ─────────────────────────
+            builder.Property(o => o.RecipientName).HasMaxLength(100);
+            builder.Property(o => o.RecipientPhone).HasMaxLength(20);
+            builder.Property(o => o.AddressLine).HasMaxLength(255);
+            builder.Property(o => o.Ward).HasMaxLength(100);
+            builder.Property(o => o.District).HasMaxLength(100);
+            builder.Property(o => o.Province).HasMaxLength(100);
+            builder.Property(o => o.CouponCode).HasMaxLength(50);
+            builder.Property(o => o.CancelReason).HasMaxLength(500);
+            builder.Property(o => o.Note).HasMaxLength(1000);
+    
+            // ── Navigation ─────────────────────────────
+            builder.HasMany(o => o.Items)
+                .WithOne(i => i.Order)
+                .HasForeignKey(i => i.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+    }
+    
+    public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
+    {
+        public void Configure(EntityTypeBuilder<OrderItem> builder)
+        {
+            builder.ToTable("OrderItems");
+    
+            builder.HasKey(i => i.Id);
+    
+            // ── Decimal precision ──────────────────────
+            builder.Property(i => i.UnitPrice)
+                .HasPrecision(18, 2);
+    
+            // TotalPrice là computed property — ignore
+            builder.Ignore(i => i.TotalPrice);
+    
+            // ── String lengths ─────────────────────────
+            builder.Property(i => i.ProductName).HasMaxLength(255);
+            builder.Property(i => i.VariantName).HasMaxLength(100);
+            builder.Property(i => i.SKU).HasMaxLength(100);
+            builder.Property(i => i.ImageUrl).HasMaxLength(500);
+    
+            // ── Fix: global query filter warning ──────
+            // Product có global filter (IsDeleted), cần configure navigation optional
+            // hoặc dùng NoAction để tránh conflict với soft-delete filter
+            builder.HasOne(i => i.Product)
+                .WithMany()
+                .HasForeignKey(i => i.ProductId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);   // ← optional navigation = suppress EF warning 10622
+    
+            builder.HasOne(i => i.ProductVariant)
+                .WithMany()
+                .HasForeignKey(i => i.ProductVariantId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+        }
+    }    
+
+
 }

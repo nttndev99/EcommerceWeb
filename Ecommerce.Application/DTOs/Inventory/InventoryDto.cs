@@ -42,4 +42,6 @@ namespace Ecommerce.Application.DTOs.Inventory
         public string SortBy { get; set; } = "ProductName";
         public string SortDirection { get; set; } = "asc";
     }
+
+
 }

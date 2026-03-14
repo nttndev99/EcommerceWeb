@@ -22,5 +22,8 @@ namespace Ecommerce.Infrastructure.Repositories
 
         public async Task<IEnumerable<Product>> GetByProductIdAsync(int productId, CancellationToken ct = default)
             => await _dbSet.Where(p => p.Id == productId).ToListAsync(ct);
+
+
+
     }
 }

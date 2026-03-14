@@ -18,7 +18,7 @@ public class UnitOfWork : IUnitOfWork
     private IProductVariantRepository? _productVariants;
     private IProductImageRepository? _productImages;
     private IInventoryRepository? _inventories;
-
+    private IOrderRepository? _orders;
     public UnitOfWork(EcommerceDbContext context) => _context = context;
 
     public ICategoryRepository Categories
@@ -34,8 +34,9 @@ public class UnitOfWork : IUnitOfWork
         => _productImages ??= new ProductImageRepository(_context);
 
     public IInventoryRepository Inventories
-        => _inventories ??= new InventoryRepository(_context);
-
+        => _inventories ??= new InventoryRepository(_context);    
+    public IOrderRepository Orders
+        => _orders ??= new OrderRepository(_context);
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
         => await _context.SaveChangesAsync(ct);
 

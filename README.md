@@ -1,6 +1,6 @@
 # 🛒 Excommerce — Admin Dashboard
 
-**ASP.NET Core 8 MVC · Clean Architecture · EF Core · Repository + UoW**
+**ASP.NET Core MVC · Clean Architecture · EF Core · Repository + UoW**
 
 ---
 
@@ -11,7 +11,7 @@ Excommerce/
 ├── Excommerce.Domain/          # Layer 1 — Entities, Interfaces (không phụ thuộc gì)
 ├── Excommerce.Application/     # Layer 2 — DTOs, Services, Business Logic
 ├── Excommerce.Infrastructure/  # Layer 3 — EF Core, Repositories, UnitOfWork
-└── Excommerce.Web/             # Layer 4 — MVC Controllers, Views, Filters
+└── Excommerce.MVC/             # Layer 4 — MVC Controllers, Views, Filters
 ```
 
 ### Dependency Flow (Clean Architecture)
@@ -26,18 +26,21 @@ Web → Infrastructure (chỉ qua DI)
 
 ## 🗂 Cấu trúc file chi tiết
 
-### 🔵 Excommerce.Domain
+### 🔵 Ecommerce.Domain
 | File | Vai trò |
 |------|---------|
 | `Common/BaseEntity.cs` | Base class với Id, CreatedAt, UpdatedAt, IsDeleted |
-| `Entities/Product.cs` | Entity sản phẩm |
 | `Entities/Category.cs` | Entity danh mục (self-referencing) |
+| `Entities/Product.cs` | Entity sản phẩm |
+| `Entities/ProductVariant.cs` | Entity sản phẩm |
+| `Entities/ProductVariant.cs` | Entity sản phẩm |
+
 | `Interfaces/IRepository.cs` | Generic Repository interface |
 | `Interfaces/IProductRepository.cs` | Specific Product queries |
 | `Interfaces/ICategoryRepository.cs` | Specific Category queries |
 | `Interfaces/IUnitOfWork.cs` | Unit of Work interface |
 
-### 🟢 Excommerce.Application
+### 🟢 Ecommerce.Application
 | File | Vai trò |
 |------|---------|
 | `Common/PagedResult.cs` | Generic paging + ServiceResult wrapper |
@@ -48,7 +51,7 @@ Web → Infrastructure (chỉ qua DI)
 | `Services/ProductService.cs` | Business logic (CRUD, validation, mapping) |
 | `Services/CategoryService.cs` | Business logic (CRUD, hierarchy check) |
 
-### 🟡 Excommerce.Infrastructure
+### 🟡 Ecommerce.Infrastructure
 | File | Vai trò |
 |------|---------|
 | `Data/AppDbContext.cs` | EF Core DbContext + Fluent API + Seed + Soft-Delete filter |
@@ -57,7 +60,7 @@ Web → Infrastructure (chỉ qua DI)
 | `Repositories/CategoryRepository.cs` | Category search with children/products |
 | `UnitOfWork/UnitOfWork.cs` | Aggregates repos, manages transactions |
 
-### 🔴 Excommerce.Web
+### 🔴 Ecommerce.Web
 | File | Vai trò |
 |------|---------|
 | `Program.cs` | DI registration, middleware pipeline |

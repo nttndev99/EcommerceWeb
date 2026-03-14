@@ -1,4 +1,5 @@
 
+using Ecommerce.Application.Interfaces;
 using Ecommerce.Application.Interfaces.Services;
 using Ecommerce.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IProductVariantService, ProductVariantService>();
         services.AddScoped<IProductImageService, ProductImageService>();
         services.AddScoped<IInventoryService, InventoryService>();
+        services.AddScoped<IOrderService, OrderService>();
 
 
         return services;

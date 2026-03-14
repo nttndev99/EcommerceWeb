@@ -1,0 +1,142 @@
+@using Ecommerce.Application.DTOs.Inventory
+@model AdjustInventoryDto
+@{
+    ViewData["Title"] = "Adjust Stock";
+    var inv = ViewBag.Inventory as InventoryDto;
+}
+
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-semibold mb-0">Adjust Stock</h4>
+            <small class="text-muted">
+                @inv?.ProductName
+                @if (!string.IsNullOrEmpty(inv?.VariantName))
+                {
+                    <span class="badge bg-secondary ms-1">@inv.VariantName</span>
+                }
+            </small>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-3">
+                    <div class="text-muted small mb-1">Total Quantity</div>
+                    <div class="fs-4 fw-bold">@inv?.Quantity</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-3">
+                    <div class="text-muted small mb-1">Reserved</div>
+                    <div class="fs-4 fw-bold text-secondary">@inv?.ReservedQuantity</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body py-3">
+                    <div class="text-muted small mb-1">Available</div>
+                    <div class="fs-4 fw-bold @(inv?.IsOutOfStock == true ? "text-danger" : inv?.IsLowStock == true ? "text-warning" : "text-success")">
+                        @inv?.AvailableQuantity
+                    </div>
+                    <div class="mt-1">
+                        @if (inv?.IsOutOfStock == true)
+                        {
+                            <span class="badge bg-danger">Out of stock</span>
+                        }
+                        else if (inv?.IsLowStock == true)
+                        {
+                            <span class="badge bg-warning text-dark">Low stock</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">In stock</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-start">
+        <div class="col-md-6 col-lg-5">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="mb-0 fw-semibold">Adjustment Details</h6>
+                </div>
+                <div class="card-body p-4">
+
+                    <form asp-action="Adjust" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small mb-3"></div>
+                        <input asp-for="Id" type="hidden" />
+
+                        <div class="mb-3">
+                            <label asp-for="AdjustmentType" class="form-label fw-medium small">Adjustment Type</label>
+                            <select asp-for="AdjustmentType" class="form-select" id="adjustType">
+                                <option value="add">➕ Add to stock</option>
+                                <option value="subtract">➖ Remove from stock</option>
+                                <option value="set">🔧 Set exact quantity</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="AdjustmentQuantity" class="form-label fw-medium small" id="qtyLabel">
+                                Quantity
+                            </label>
+                            <input asp-for="AdjustmentQuantity" type="number" min="0"
+                                   class="form-control" id="qtyInput" />
+                            <div class="form-text" id="qtyHint">Enter the quantity to add to current stock.</div>
+                            <span asp-validation-for="AdjustmentQuantity" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Reason" class="form-label fw-medium small">
+                                Reason <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Reason" type="text" class="form-control"
+                                   placeholder="e.g. Supplier restock, Stock count correction…" required />
+                            <span asp-validation-for="Reason" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Note" class="form-label fw-medium small">Note <span class="text-muted fw-normal">(optional)</span></label>
+                            <textarea asp-for="Note" class="form-control" rows="2"
+                                      placeholder="Additional notes…"></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-dark btn-sm px-4">Confirm Adjustment</button>
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Cancel</a>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        const hints = {
+            add:      ['Quantity to Add',      'Enter the quantity to add to current stock.'],
+            subtract: ['Quantity to Remove',   'Enter the quantity to deduct from current stock.'],
+            set:      ['New Exact Quantity',   'Current stock will be overwritten with this value.'],
+        };
+        document.getElementById('adjustType').addEventListener('change', function () {
+            const h = hints[this.value];
+            document.getElementById('qtyLabel').textContent = h[0];
+            document.getElementById('qtyHint').textContent  = h[1];
+        });
+    </script>
+}

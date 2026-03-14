@@ -167,134 +167,134 @@ public class CategoryService : ICategoryService
         return Result<CategoryDto>.Success(await GetByIdAsync(category.Id, ct) ?? new CategoryDto());
     }
 
-// ===== SOFT DELETE (đã có, refactor lại rõ hơn) =====
-public async Task<Result> SoftDeleteAsync(int id, CancellationToken ct = default)
-{
-    var category = await _uow.Categories.GetByIdAsync(id, ct);
-    if (category == null || category.IsDeleted)
-        return Result.Failure("Category not found.");
-
-    var hasActiveProducts = await _uow.Products
-        .ExistsAsync(p => p.CategoryId == id && !p.IsDeleted, ct);
-    if (hasActiveProducts)
-        return Result.Failure("Cannot delete category with existing active products.");
-
-    // Soft delete các sub-categories (nếu có)
-    var subCategories = await _uow.Categories.Query()
-        .Where(c => c.ParentId == id && !c.IsDeleted)
-        .ToListAsync(ct);
-
-    foreach (var sub in subCategories)
+    // ===== SOFT DELETE (đã có, refactor lại rõ hơn) =====
+    public async Task<Result> SoftDeleteAsync(int id, CancellationToken ct = default)
     {
-        sub.IsDeleted = true;
-        sub.UpdatedAt = DateTime.UtcNow;
-        _uow.Categories.Update(sub);
-    }
+        var category = await _uow.Categories.GetByIdAsync(id, ct);
+        if (category == null || category.IsDeleted)
+            return Result.Failure("Category not found.");
 
-    category.IsDeleted = true;
-    category.UpdatedAt = DateTime.UtcNow;
-    _uow.Categories.Update(category);
-    await _uow.SaveChangesAsync(ct);
+        var hasActiveProducts = await _uow.Products
+            .ExistsAsync(p => p.CategoryId == id && !p.IsDeleted, ct);
+        if (hasActiveProducts)
+            return Result.Failure("Cannot delete category with existing active products.");
 
-    return Result.Success();
-}
+        // Soft delete các sub-categories (nếu có)
+        var subCategories = await _uow.Categories.Query()
+            .Where(c => c.ParentId == id && !c.IsDeleted)
+            .ToListAsync(ct);
 
-// ===== HARD DELETE (xóa vĩnh viễn) =====
-public async Task<Result> HardDeleteAsync(int id, CancellationToken ct = default)
-{
-    var category = await _uow.Categories.Query()
-        .IgnoreQueryFilters()   // bỏ global filter để truy vấn cả deleted lẫn non-deleted
-        .Include(c => c.Products)
-        .Include(c => c.Children)
-        .FirstOrDefaultAsync(c => c.Id == id, ct);
-
-    if (category == null)
-        return Result.Failure("Category not found.");
-
-    // Chặn nếu còn sản phẩm (kể cả đã soft delete)
-    if (category.Products.Any())
-        return Result.Failure("Cannot permanently delete category that has products. Remove all products first.");
-
-    // Chặn nếu còn sub-categories
-    if (category.Children.Any())
-        return Result.Failure("Cannot permanently delete category that has sub-categories.");
-
-    _uow.Categories.Remove(category);
-    await _uow.SaveChangesAsync(ct);
-
-    return Result.Success();
-}
-
-// ===== RESTORE (khôi phục soft deleted) =====
-public async Task<Result<CategoryDto>> RestoreAsync(int id, CancellationToken ct = default)
-{
-    var category = await _uow.Categories.Query()
-        .IgnoreQueryFilters()   // bỏ global filter để truy vấn cả deleted lẫn non-deleted
-        .FirstOrDefaultAsync(c => c.Id == id && c.IsDeleted, ct);
-
-    if (category == null)
-        return Result<CategoryDto>.Failure("Deleted category not found.");
-
-    // Kiểm tra parent có đang bị xóa không
-    if (category.ParentId.HasValue)
-    {
-        var parentDeleted = await _uow.Categories.Query()
-            .IgnoreQueryFilters()
-            .AnyAsync(c => c.Id == category.ParentId && c.IsDeleted, ct);
-
-        if (parentDeleted)
-            return Result<CategoryDto>.Failure("Cannot restore: parent category is also deleted. Restore parent first.");
-    }
-
-    category.IsDeleted = false;
-    category.UpdatedAt = DateTime.UtcNow;
-    _uow.Categories.Update(category);
-    await _uow.SaveChangesAsync(ct);
-
-    return Result<CategoryDto>.Success(await GetByIdAsync(category.Id, ct) ?? new CategoryDto());
-}
-
-// ===== GET DELETED (xem danh sách đã soft delete) =====
-public async Task<PagedResult<CategoryListDto>> GetDeletedAsync(CategoryFilterParams filter, CancellationToken ct = default)
-{
-    var query = _uow.Categories.Query()
-        .IgnoreQueryFilters()   // bỏ global filter để truy vấn cả deleted lẫn non-deleted
-        .Where(c => c.IsDeleted)
-        .AsNoTracking();
-
-    if (!string.IsNullOrWhiteSpace(filter.Search))
-    {
-        var search = filter.Search.ToLower();
-        query = query.Where(c => c.Name.ToLower().Contains(search) ||
-                                c.Slug.ToLower().Contains(search));
-    }
-
-    var totalCount = await query.CountAsync(ct);
-
-    query = filter.SortBy?.ToLower() switch
-    {
-        "name"      => filter.SortDirection == "desc" ? query.OrderByDescending(c => c.Name)      : query.OrderBy(c => c.Name),
-        "updatedat" => filter.SortDirection == "desc" ? query.OrderByDescending(c => c.UpdatedAt) : query.OrderBy(c => c.UpdatedAt),
-        _           => query.OrderByDescending(c => c.UpdatedAt)
-    };
-
-    var items = await query
-        .Skip((filter.PageNumber - 1) * filter.PageSize)
-        .Take(filter.PageSize)
-        .Select(c => new CategoryListDto
+        foreach (var sub in subCategories)
         {
-            Id           = c.Id,
-            Name         = c.Name,
-            Slug         = c.Slug,
-            IsActive     = c.IsActive,
-            ParentId     = c.ParentId,
-            ParentName   = c.Parent != null ? c.Parent.Name : null,
-            DisplayOrder = c.DisplayOrder,
-            ProductCount = c.Products.Count(),   // kể cả deleted products
-            CreatedAt    = c.CreatedAt
-        })
-        .ToListAsync(ct);
+            sub.IsDeleted = true;
+            sub.UpdatedAt = DateTime.UtcNow;
+            _uow.Categories.Update(sub);
+        }
 
-    return PagedResult<CategoryListDto>.Create(items, totalCount, filter.PageNumber, filter.PageSize);
-}
+        category.IsDeleted = true;
+        category.UpdatedAt = DateTime.UtcNow;
+        _uow.Categories.Update(category);
+        await _uow.SaveChangesAsync(ct);
+
+        return Result.Success();
+    }
+
+    // ===== HARD DELETE (xóa vĩnh viễn) =====
+    public async Task<Result> HardDeleteAsync(int id, CancellationToken ct = default)
+    {
+        var category = await _uow.Categories.Query()
+            .IgnoreQueryFilters()   // bỏ global filter để truy vấn cả deleted lẫn non-deleted
+            .Include(c => c.Products)
+            .Include(c => c.Children)
+            .FirstOrDefaultAsync(c => c.Id == id, ct);
+
+        if (category == null)
+            return Result.Failure("Category not found.");
+
+        // Chặn nếu còn sản phẩm (kể cả đã soft delete)
+        if (category.Products.Any())
+            return Result.Failure("Cannot permanently delete category that has products. Remove all products first.");
+
+        // Chặn nếu còn sub-categories
+        if (category.Children.Any())
+            return Result.Failure("Cannot permanently delete category that has sub-categories.");
+
+        _uow.Categories.Remove(category);
+        await _uow.SaveChangesAsync(ct);
+
+        return Result.Success();
+    }
+
+    // ===== RESTORE (khôi phục soft deleted) =====
+    public async Task<Result<CategoryDto>> RestoreAsync(int id, CancellationToken ct = default)
+    {
+        var category = await _uow.Categories.Query()
+            .IgnoreQueryFilters()   // bỏ global filter để truy vấn cả deleted lẫn non-deleted
+            .FirstOrDefaultAsync(c => c.Id == id && c.IsDeleted, ct);
+
+        if (category == null)
+            return Result<CategoryDto>.Failure("Deleted category not found.");
+
+        // Kiểm tra parent có đang bị xóa không
+        if (category.ParentId.HasValue)
+        {
+            var parentDeleted = await _uow.Categories.Query()
+                .IgnoreQueryFilters()
+                .AnyAsync(c => c.Id == category.ParentId && c.IsDeleted, ct);
+
+            if (parentDeleted)
+                return Result<CategoryDto>.Failure("Cannot restore: parent category is also deleted. Restore parent first.");
+        }
+
+        category.IsDeleted = false;
+        category.UpdatedAt = DateTime.UtcNow;
+        _uow.Categories.Update(category);
+        await _uow.SaveChangesAsync(ct);
+
+        return Result<CategoryDto>.Success(await GetByIdAsync(category.Id, ct) ?? new CategoryDto());
+    }
+
+    // ===== GET DELETED (xem danh sách đã soft delete) =====
+    public async Task<PagedResult<CategoryListDto>> GetDeletedAsync(CategoryFilterParams filter, CancellationToken ct = default)
+    {
+        var query = _uow.Categories.Query()
+            .IgnoreQueryFilters()   // bỏ global filter để truy vấn cả deleted lẫn non-deleted
+            .Where(c => c.IsDeleted)
+            .AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.ToLower();
+            query = query.Where(c => c.Name.ToLower().Contains(search) ||
+                                    c.Slug.ToLower().Contains(search));
+        }
+
+        var totalCount = await query.CountAsync(ct);
+
+        query = filter.SortBy?.ToLower() switch
+        {
+            "name"      => filter.SortDirection == "desc" ? query.OrderByDescending(c => c.Name)      : query.OrderBy(c => c.Name),
+            "updatedat" => filter.SortDirection == "desc" ? query.OrderByDescending(c => c.UpdatedAt) : query.OrderBy(c => c.UpdatedAt),
+            _           => query.OrderByDescending(c => c.UpdatedAt)
+        };
+
+        var items = await query
+            .Skip((filter.PageNumber - 1) * filter.PageSize)
+            .Take(filter.PageSize)
+            .Select(c => new CategoryListDto
+            {
+                Id           = c.Id,
+                Name         = c.Name,
+                Slug         = c.Slug,
+                IsActive     = c.IsActive,
+                ParentId     = c.ParentId,
+                ParentName   = c.Parent != null ? c.Parent.Name : null,
+                DisplayOrder = c.DisplayOrder,
+                ProductCount = c.Products.Count(),   // kể cả deleted products
+                CreatedAt    = c.CreatedAt
+            })
+            .ToListAsync(ct);
+
+        return PagedResult<CategoryListDto>.Create(items, totalCount, filter.PageNumber, filter.PageSize);
+    }
 }

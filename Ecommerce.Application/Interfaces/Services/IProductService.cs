@@ -9,7 +9,10 @@ namespace Ecommerce.Application.Interfaces.Services
         Task<ProductDto?> GetByIdAsync(int id, CancellationToken ct = default);
         Task<Result<ProductDto>> CreateAsync(CreateProductDto dto, CancellationToken ct = default);
         Task<Result<ProductDto>> UpdateAsync(UpdateProductDto dto, CancellationToken ct = default);
-        Task<Result> DeleteAsync(int id, CancellationToken ct = default);
+        Task<Result> SoftDeleteAsync(int id, CancellationToken ct = default);
+        Task<Result> HardDeleteAsync(int id, CancellationToken ct = default);
+        Task<Result<ProductDto>> RestoreAsync(int id, CancellationToken ct = default);
+        Task<PagedResult<ProductListDto>> GetDeletedAsync(ProductFilterParams filter, CancellationToken ct = default);
     }
 
 }

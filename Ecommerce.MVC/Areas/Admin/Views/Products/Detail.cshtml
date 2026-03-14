@@ -1,0 +1,551 @@
+@model Ecommerce.Application.DTOs.Product.ProductDto
+@using Ecommerce.Application.DTOs.Inventory
+@using Ecommerce.Application.DTOs.Product
+@using Ecommerce.Domain.Enums
+
+@{
+    ViewData["Title"] = Model.Name;
+    var images      = Model.Images       ?? Enumerable.Empty<ProductImageDto>();
+    var inventories = Model.Inventories  ?? Enumerable.Empty<InventoryDto>();
+    var variants = ViewBag.Variants as PagedResult<ProductVariantDto> ?? new PagedResult<ProductVariantDto>();
+    bool   isActive   = Model.Status == ProductStatus.Active;
+    int    stockLevel = Model.TotalStock == 0 ? 0 : Model.TotalStock <= 10 ? 1 : 2;
+    string stockColor = stockLevel == 0 ? "danger" : stockLevel == 1 ? "warning" : "success";
+    string stockLabel = stockLevel == 0 ? "Out of Stock" : stockLevel == 1 ? "Low Stock" : "In Stock";
+}
+
+
+
+
+<div class="container-xxl py-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small mb-0">
+            <li class="breadcrumb-item">
+                <a asp-action="Index" class="text-decoration-none text-muted">Products</a>
+            </li>
+            @if (!string.IsNullOrEmpty(Model.CategoryName))
+            {
+                <li class="breadcrumb-item text-muted">@Model.CategoryName</li>
+            }
+            <li class="breadcrumb-item active fw-semibold">@Model.Name</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+
+        <div class="d-flex align-items-start gap-3">
+            @if (!string.IsNullOrEmpty(Model.PrimaryImageUrl))
+            {
+                <img src="@Model.PrimaryImageUrl" alt="@Model.Name"
+                    class="rounded-3 border object-fit-cover flex-shrink-0"
+                    width="72" height="72"
+                    onerror="this.style.display='none'" />
+            }
+            else
+            {
+                <div class="rounded-3 border bg-light d-flex align-items-center justify-content-center flex-shrink-0"
+                    style="width:72px;height:72px">
+                    <i class="bi bi-box-seam text-secondary fs-4"></i>
+                </div>
+            }
+            <div>
+                <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                    <h1 class="h4 fw-bold mb-0">@Model.Name</h1>
+                    @if (Model.IsFeatured)
+                    {
+                        <span class="badge bg-warning text-dark">★ Featured</span>
+                    }
+                    <span class="badge @(isActive ? "bg-success" : "bg-secondary")">@Model.Status</span>
+                </div>
+                <div class="d-flex align-items-center flex-wrap gap-2">
+                    @if (!string.IsNullOrEmpty(Model.SKU))
+                    {
+                        <code class="small bg-light border rounded px-2">@Model.SKU</code>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.Brand))
+                    {
+                        <span class="small text-muted"><i class="bi bi-building me-1"></i>@Model.Brand</span>
+                    }
+                    <span class="small text-muted">
+                        <i class="bi bi-calendar3 me-1"></i>@Model.CreatedAt.ToString("dd MMM yyyy")
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            @* <a asp-controller="Inventory" asp-action="Detail" asp-route-id="@Model.Id"
+               class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-graph-up me-1"></i>Inventory
+            </a> *@
+            <a asp-area="Admin" asp-controller="ProductVariants" asp-action="Index" asp-route-productId="@Model.Id"
+               class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-grid-3x3-gap me-1"></i>Variants
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-6 col-md-3">
+            <div class="card border h-100">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="rounded-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:42px;height:42px">
+                        <i class="bi bi-tag-fill text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size:.65rem;letter-spacing:.06em">Base Price</div>
+                        <div class="fw-bold font-monospace">@Model.BasePrice.ToString("N0") ₫</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card border h-100">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="rounded-3 bg-danger bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:42px;height:42px">
+                        <i class="bi bi-percent text-danger"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size:.65rem;letter-spacing:.06em">Sale Price</div>
+                        <div class="fw-bold font-monospace">
+                            @(Model.SalePrice.HasValue ? Model.SalePrice.Value.ToString("N0") + " ₫" : "—")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card border h-100">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="rounded-3 bg-@stockColor bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:42px;height:42px">
+                        <i class="bi bi-boxes text-@stockColor"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size:.65rem;letter-spacing:.06em">Total Stock</div>
+                        <div class="fw-bold font-monospace text-@stockColor">@Model.TotalStock</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="card border h-100">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:42px;height:42px;background:rgba(111,66,193,.1)">
+                        <i class="bi bi-grid-3x3-gap-fill" style="color:#6f42c1"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size:.65rem;letter-spacing:.06em">Variants</div>
+                        <div class="fw-bold font-monospace">@Model.VariantCount</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row g-4 align-items-start">
+
+        <div class="col-lg-8 d-flex flex-column gap-4">
+
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4">
+                    <span class="text-muted fw-bold text-uppercase small">
+                        <i class="bi bi-currency-exchange me-1"></i>Pricing
+                    </span>
+                </div>
+                <div class="card-body px-4 py-3">
+                    <div class="d-flex align-items-baseline flex-wrap gap-3">
+                        <span class="display-6 fw-bold font-monospace">@Model.BasePrice.ToString("N0") ₫</span>
+                        @if (Model.SalePrice.HasValue && Model.SalePrice.Value < Model.BasePrice)
+                        {
+                            int disc = (int)Math.Round((Model.BasePrice - Model.SalePrice.Value) / Model.BasePrice * 100);                            <span class="fs-5 font-monospace text-muted text-decoration-line-through">@Model.SalePrice.Value.ToString("N0") ₫</span>
+                            <span class="badge bg-warning text-dark rounded-pill">−@disc%</span>
+                        }
+                    </div>
+                    @if (Model.SalePrice.HasValue)
+                    {
+                        <div class="row g-3 mt-1 pt-2 border-top">
+                            <div class="col-auto">
+                                <div class="text-muted text-uppercase fw-semibold" style="font-size:.65rem;letter-spacing:.06em">Sale Price</div>
+                                <div class="fw-bold font-monospace small">@Model.SalePrice.Value.ToString("N0") ₫</div>
+                            </div>
+                            <div class="col-auto">
+                                <div class="text-muted text-uppercase fw-semibold" style="font-size:.65rem;letter-spacing:.06em">Savings</div>
+                                <div class="fw-bold font-monospace small text-success">@((Model.BasePrice - Model.SalePrice.Value).ToString("N0")) ₫</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.Description))
+            {
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-file-text me-1"></i>Description
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-3">
+                        @if (!string.IsNullOrWhiteSpace(Model.ShortDescription))
+                        {
+                            <p class="fw-semibold mb-2">@Model.ShortDescription</p>
+                        }
+                        <p class="text-muted mb-0 lh-lg" style="white-space:pre-wrap;font-size:.9rem">@Model.Description</p>
+                    </div>
+                </div>
+            }
+
+            @if (images.Any())
+            {
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4 d-flex align-items-center gap-2">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-images me-1"></i>Gallery
+                        </span>
+                        <span class="badge bg-light text-muted border small">@images.Count()</span>
+                    </div>
+                    <div class="card-body px-4 py-3">
+                        <div class="bg-light rounded-3 d-flex align-items-center justify-content-center mb-3 overflow-hidden"
+                                style="height:240px">
+                            <img id="mainImg"
+                                src="@images.OrderBy(i => i.DisplayOrder).First().ImageUrl"
+                                alt="@Model.Name"
+                                class="img-fluid rounded-3"
+                                style="max-height:240px;object-fit:contain" />
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var img in images.OrderBy(i => i.DisplayOrder))
+                            {
+                                <img src="@img.ImageUrl"
+                                    alt="@(img.AltText ?? Model.Name)"
+                                    class="rounded-2 border @(img.IsPrimary ? "border-primary border-2" : "") gallery-thumb"
+                                    onclick="setMainImg(this)"
+                                    role="button"
+                                    width="64" height="64"
+                                    style="object-fit:cover;cursor:pointer"
+                                    onerror="this.style.display='none'" />
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+
+
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-grid me-1"></i>Variants
+                        </span>
+                        <span class="badge bg-light text-muted border small">@variants.TotalCount</span>
+                    </div>
+                    <a asp-area="Admin" asp-controller="ProductVariants" asp-action="Create" asp-route-productId="@Model.Id"
+                        class="btn btn-sm btn-primary">
+                        <i class="bi bi-plus-lg me-1"></i>Add Variant
+                    </a>
+                </div>
+
+                @if (!variants.Items.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox d-block mb-2 opacity-25" style="font-size:2.5rem"></i>
+                        <p class="mb-3 small">No variants yet</p>
+                        <a asp-area="Admin" asp-controller="ProductVariants" asp-action="Create" asp-route-productId="@Model.Id"
+                        class="btn btn-sm btn-primary">Add First Variant</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4 py-3 border-0 text-muted fw-semibold text-uppercase small" style="font-size:.7rem">Variant</th>
+                                    <th class="py-3 border-0 text-muted fw-semibold text-uppercase small" style="font-size:.7rem">SKU</th>
+                                    <th class="py-3 border-0 text-muted fw-semibold text-uppercase small" style="font-size:.7rem">Attributes</th>
+                                    <th class="py-3 border-0 text-muted fw-semibold text-uppercase small" style="font-size:.7rem">Price</th>
+                                    <th class="py-3 border-0 text-muted fw-semibold text-uppercase small" style="font-size:.7rem">Stock</th>
+                                    <th class="py-3 border-0 text-muted fw-semibold text-uppercase small" style="font-size:.7rem">Status</th>
+                                    <th class="pe-4 py-3 border-0 text-muted fw-semibold text-uppercase small text-end" style="font-size:.7rem">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var v in variants.Items.OrderBy((ProductVariantDto x) => x.DisplayOrder))                                
+                                {
+                                    <tr>
+                                        <td class="ps-4 py-3">
+                                            <div class="d-flex align-items-center gap-2">
+                                                @if (!string.IsNullOrEmpty(v.ImageUrl))
+                                                {
+                                                    <img src="@v.ImageUrl"
+                                                        class="rounded-2 border object-fit-cover flex-shrink-0"
+                                                        width="34" height="34"
+                                                        onerror="this.style.display='none'" />
+                                                }
+                                                <span class="fw-semibold small">@v.Name</span>
+                                            </div>
+                                        </td>
+                                        <td><code class="small text-muted">@(v.SKU ?? "—")</code></td>
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @if (!string.IsNullOrEmpty(v.Color))
+                                                {
+                                                    <span class="badge rounded-pill bg-light text-dark border d-inline-flex align-items-center gap-1 fw-normal small">
+                                                        <span class="rounded-circle border"
+                                                            style="width:10px;height:10px;background:@v.Color;display:inline-block;flex-shrink:0"></span>
+                                                        @v.Color
+                                                    </span>
+                                                }
+                                                @if (!string.IsNullOrEmpty(v.Size))
+                                                {
+                                                    <span class="badge rounded-pill bg-light text-dark border fw-normal small">
+                                                        <i class="bi bi-rulers me-1"></i>@v.Size
+                                                    </span>
+                                                }
+                                                @if (!string.IsNullOrEmpty(v.Material))
+                                                {
+                                                    <span class="badge rounded-pill bg-light text-dark border fw-normal small">@v.Material</span>
+                                                }
+                                                @if (string.IsNullOrEmpty(v.Color) && string.IsNullOrEmpty(v.Size) && string.IsNullOrEmpty(v.Material))
+                                                {
+                                                    <span class="text-muted small">—</span>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="fw-bold font-monospace small">@v.Price.ToString("N0") ₫</span>
+                                            @if (v.SalePrice.HasValue && v.SalePrice.Value < v.Price)
+                                            {
+                                                <div><small class="text-muted text-decoration-line-through font-monospace">@v.SalePrice.Value.ToString("N0") ₫</small></div>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (v.Stock == 0)
+                                            {
+                                                <span class="badge bg-danger rounded-pill">Out</span>
+                                            }
+                                            else if (v.Stock <= 5)
+                                            {
+                                                <span class="badge bg-warning text-dark rounded-pill">@v.Stock low</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="fw-bold small">@v.Stock</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge @(v.IsActive ? "bg-success" : "bg-secondary") rounded-pill">
+                                                @(v.IsActive ? "Active" : "Off")
+                                            </span>
+                                        </td>
+                                        <td class="pe-4 text-end">
+                                            <div class="d-flex justify-content-end gap-1">
+                                                <a asp-controller="ProductVariant" asp-action="Edit" asp-route-id="@v.Id"
+                                                    class="btn btn-sm btn-outline-secondary py-1 px-2"
+                                                    title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <a asp-controller="Inventories" asp-action="Adjust" asp-route-id="@v.Id"
+                                                    class="btn btn-sm btn-outline-primary py-1 px-2"
+                                                    title="Adjust Stock">
+                                                    <i class="bi bi-boxes"></i>
+                                                </a>
+                                                <a asp-controller="ProductVariant" asp-action="Delete" asp-route-id="@v.Id"
+                                                    class="btn btn-sm btn-outline-danger py-1 px-2"
+                                                    title="Delete"
+                                                    onclick="return confirm('Delete variant @v.Name?')">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @* ── Pagination ── *@
+                    @if (variants.TotalPages > 1)
+                    {
+                        <div class="d-flex align-items-center justify-content-between px-4 py-3 border-top">
+                            <small class="text-muted">
+                                Showing @variants.FirstItemIndex–@variants.LastItemIndex of @variants.TotalCount variants
+                            </small>
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item @(!variants.HasPreviousPage ? "disabled" : "")">
+                                    <a class="page-link"
+                                    asp-action="Detail" asp-route-id="@Model.Id"
+                                    asp-route-variantPage="@(variants.PageNumber - 1)">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </a>
+                                </li>
+
+                                @for (int i = 1; i <= variants.TotalPages; i++)
+                                {
+                                    <li class="page-item @(i == variants.PageNumber ? "active" : "")">
+                                        <a class="page-link"
+                                        asp-action="Detail" asp-route-id="@Model.Id"
+                                        asp-route-variantPage="@i">@i</a>
+                                    </li>
+                                }
+
+                                <li class="page-item @(!variants.HasNextPage ? "disabled" : "")">
+                                    <a class="page-link"
+                                    asp-action="Detail" asp-route-id="@Model.Id"
+                                    asp-route-variantPage="@(variants.PageNumber + 1)">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                }
+            </div>
+
+        </div>
+
+        <div class="col-lg-4 d-flex flex-column gap-4">
+
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4">
+                    <span class="text-muted fw-bold text-uppercase small">
+                        <i class="bi bi-boxes me-1"></i>Stock Status
+                    </span>
+                </div>
+                <div class="card-body px-4 py-4 text-center">
+                    <div class="rounded-circle border border-4 border-@stockColor d-inline-flex flex-column align-items-center justify-content-center mb-3"
+                        style="width:90px;height:90px">
+                        <span class="fw-bold fs-3 font-monospace lh-1 text-@stockColor">@Model.TotalStock</span>
+                        <span class="text-muted" style="font-size:.6rem;text-transform:uppercase;letter-spacing:.06em">units</span>
+                    </div>
+                    <div class="mb-3">
+                        <span class="badge bg-@stockColor @(stockLevel==1 ? "text-dark" : "") rounded-pill px-3 py-2">@stockLabel</span>
+                    </div>
+                    <div class="d-grid gap-2">
+                        @* <a asp-controller="Inventories" asp-action="AdjustVariant" asp-route-id="@Model.Id"
+                        class="btn btn-sm btn-primary">
+                            <i class="bi bi-sliders me-1"></i>Adjust Stock
+                        </a> *@
+                        @* <a asp-controller="InventoryHistory" asp-action="Index" 
+                        class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-clock-history me-1"></i>View History
+                        </a> *@
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4">
+                    <span class="text-muted fw-bold text-uppercase small">
+                        <i class="bi bi-info-circle me-1"></i>Details
+                    </span>
+                </div>
+                <div class="card-body px-4 py-2">
+                    @{
+                        void Row(string key, string? val, bool mono = false)
+                        {
+                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <span class="small text-muted">@key</span>
+                                <span class="small fw-semibold text-end ms-3 @(mono ? "font-monospace" : "")">@(val ?? "—")</span>
+                            </div>
+                        }
+                    }
+                    @{ Row("ID", $"#{Model.Id}", true); }
+
+                    @if (!string.IsNullOrEmpty(Model.SKU))
+                    {
+                        Row("SKU", Model.SKU, true);
+                    }
+
+                    @{ Row("Category", Model.CategoryName); }
+
+                    @if (!string.IsNullOrEmpty(Model.Brand))
+                    {
+                        Row("Brand", Model.Brand);
+                    }
+
+                    @{ Row("Variants", Model.VariantCount.ToString()); } 
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <span class="small text-muted">Status</span>
+                        <span class="badge @(isActive ? "bg-success" : "bg-secondary")">@Model.Status</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <span class="small text-muted">Featured</span>
+                        @if (Model.IsFeatured)
+                        {
+                            <span class="small fw-semibold"><i class="bi bi-star-fill text-warning me-1"></i>Yes</span>
+                        }
+                        else
+                        {
+                            <span class="small text-muted">No</span>
+                        }
+                    </div>
+                    @{ Row("Created", Model.CreatedAt.ToString("dd MMM yyyy")); }
+                    @{ Row("Slug", Model.Slug, true); }
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Tags))
+            {
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-tags me-1"></i>Tags
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-3 d-flex flex-wrap gap-2">
+                        @foreach (var tag in Model.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            <span class="badge bg-light text-dark border rounded-pill px-3 py-2 fw-normal small">@tag.Trim()</span>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4">
+                    <span class="text-muted fw-bold text-uppercase small">
+                        <i class="bi bi-lightning me-1"></i>Actions
+                    </span>
+                </div>
+                <div class="card-body px-4 py-3 d-grid gap-2">
+                    <a asp-action="Edit" asp-route-id="@Model.Id"
+                        class="btn btn-primary d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-pencil-square"></i>Edit Product
+                    </a>
+                    <hr class="my-1" />
+                    <a asp-action="SoftDelete" asp-route-id="@Model.Id"
+                        class="btn btn-outline-danger d-flex align-items-center justify-content-center gap-2"
+                        onclick="return confirm('Move \'@Model.Name\' to trash?')">
+                        <i class="bi bi-trash3"></i>Move to Trash
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@await Html.PartialAsync("_ProductToast")
+
+@section Scripts {
+    <script>
+        function setMainImg(el) {
+            document.querySelectorAll('.gallery-thumb').forEach(t => {
+                t.classList.remove('border-primary', 'border-2');
+            });
+            el.classList.add('border-primary', 'border-2');
+            document.getElementById('mainImg').src = el.src;
+        }
+    </script>
+}

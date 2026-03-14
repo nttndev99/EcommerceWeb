@@ -1,0 +1,306 @@
+@model Ecommerce.Application.DTOs.Product.CreateProductDto
+@using Ecommerce.Domain.Enums
+
+@{
+    ViewData["Title"] = "Create Product";
+    var categories = ViewBag.Categories as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
+}
+
+<div class="container-xxl py-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small mb-0">
+            <li class="breadcrumb-item">
+                <a asp-action="Index" class="text-decoration-none text-muted">Products</a>
+            </li>
+            <li class="breadcrumb-item active fw-semibold">Create Product</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="h4 fw-bold mb-0">Create Product</h1>
+            <p class="text-muted small mb-0 mt-1">Fill in the details below to add a new product</p>
+        </div>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Products
+        </a>
+    </div>
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger d-flex align-items-start gap-2 mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+        <div></div>
+    </div>
+
+    <form asp-action="Create" method="post" autocomplete="off">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-4 align-items-start">
+
+            <div class="col-lg-8 d-flex flex-column gap-4">
+
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-info-circle me-1"></i>Basic Information
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-4 d-flex flex-column gap-3">
+
+                        <div>
+                            <label asp-for="Name" class="form-label fw-semibold small">
+                                Product Name <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="Name"
+                                class="form-control"
+                                placeholder="e.g. Nike Air Max 270"
+                                id="inputName" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="Slug" class="form-label fw-semibold small">
+                                Slug
+                                <span class="text-muted fw-normal">(auto-generated if empty)</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text text-muted small font-monospace">/products/</span>
+                                <input asp-for="Slug"
+                                    class="form-control font-monospace"
+                                    placeholder="nike-air-max-270"
+                                    id="inputSlug" />
+                            </div>
+                            <span asp-validation-for="Slug" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="ShortDescription" class="form-label fw-semibold small">Short Description</label>
+                            <input asp-for="ShortDescription"
+                                class="form-control"
+                                placeholder="Brief summary shown in listings…" />
+                            <span asp-validation-for="ShortDescription" class="text-danger small"></span>
+                        </div>
+
+                        <div>
+                            <label asp-for="Description" class="form-label fw-semibold small">Full Description</label>
+                            <textarea asp-for="Description"
+                                    class="form-control"
+                                    rows="5"
+                                    placeholder="Detailed product description…"></textarea>
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-currency-exchange me-1"></i>Pricing
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-4">
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <label asp-for="BasePrice" class="form-label fw-semibold small">
+                                    Base Price (₫) <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="BasePrice"
+                                        type="number"
+                                        min="0"
+                                        step="1000"
+                                        class="form-control font-monospace"
+                                        placeholder="0" />
+                                    <span class="input-group-text text-muted">₫</span>
+                                </div>
+                                <span asp-validation-for="BasePrice" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="SalePrice" class="form-label fw-semibold small">
+                                    Sale Price (₫)
+                                    <span class="text-muted fw-normal">(optional)</span>
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="SalePrice"
+                                        type="number"
+                                        min="0"
+                                        step="1000"
+                                        class="form-control font-monospace"
+                                        placeholder="Leave empty if no sale" />
+                                    <span class="input-group-text text-muted">₫</span>
+                                </div>
+                                <span asp-validation-for="SalePrice" class="text-danger small"></span>
+                                <div id="discountHint" class="form-text text-success d-none">
+                                    <i class="bi bi-tag-fill me-1"></i><span id="discountValue"></span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-diagram-2 me-1"></i>Organisation
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-4">
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <label asp-for="CategoryId" class="form-label fw-semibold small">
+                                    Category <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="CategoryId"
+                                        asp-items="categories"
+                                        class="form-select">
+                                    <option value="">— Select category —</option>
+                                </select>
+                                <span asp-validation-for="CategoryId" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Brand" class="form-label fw-semibold small">Brand</label>
+                                <input asp-for="Brand"
+                                    class="form-control"
+                                    placeholder="e.g. Nike" />
+                                <span asp-validation-for="Brand" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="SKU" class="form-label fw-semibold small">SKU</label>
+                                <input asp-for="SKU"
+                                    class="form-control font-monospace"
+                                    placeholder="e.g. NK-AM270-001" />
+                                <span asp-validation-for="SKU" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-12">
+                                <label asp-for="Tags" class="form-label fw-semibold small">
+                                    Tags
+                                    <span class="text-muted fw-normal">(comma-separated)</span>
+                                </label>
+                                <input asp-for="Tags"
+                                    class="form-control"
+                                    placeholder="e.g. shoes, sport, summer" />
+                                <div class="form-text">Separate each tag with a comma.</div>
+                                <span asp-validation-for="Tags" class="text-danger small"></span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-4 d-flex flex-column gap-4">
+
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-send me-1"></i>Publish
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-3 d-flex flex-column gap-3">
+
+                        <div>
+                            <label asp-for="Status" class="form-label fw-semibold small">Status</label>
+                            <select asp-for="Status"
+                                    asp-items="Html.GetEnumSelectList<ProductStatus>()"
+                                    class="form-select">
+                            </select>
+                            <span asp-validation-for="Status" class="text-danger small"></span>
+                        </div>
+
+                        <div class="form-check form-switch d-flex align-items-center gap-3 p-0">
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold small">Featured Product</div>
+                                <div class="text-muted" style="font-size:.78rem">Highlight this product on storefront</div>
+                            </div>
+                            <input asp-for="IsFeatured"
+                                class="form-check-input ms-0 flex-shrink-0"
+                                role="switch"
+                                style="width:2.5rem;height:1.25rem;cursor:pointer" />
+                        </div>
+
+                        <hr class="my-1" />
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary d-flex align-items-center justify-content-center gap-2">
+                                <i class="bi bi-plus-circle-fill"></i>Create Product
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2">
+                                <i class="bi bi-x-circle"></i>Cancel
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="card border bg-light">
+                    <div class="card-body px-4 py-3">
+                        <div class="fw-semibold small mb-2">
+                            <i class="bi bi-lightbulb-fill text-warning me-1"></i>Tips
+                        </div>
+                        <ul class="small text-muted mb-0 ps-3 d-flex flex-column gap-1">
+                            <li>Slug is auto-generated from product name if left empty.</li>
+                            <li>Set Sale Price lower than Base Price to show a discount badge.</li>
+                            <li>Add variants after creating the product for different sizes/colors.</li>
+                            <li>Use <strong>Draft</strong> status to save without publishing.</li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Auto-generate slug from name
+        const nameInput = document.getElementById('inputName');
+        const slugInput = document.getElementById('inputSlug');
+        let slugTouched = slugInput.value.trim().length > 0;
+
+        slugInput.addEventListener('input', () => { slugTouched = true; });
+
+        nameInput.addEventListener('input', () => {
+            if (slugTouched) return;
+            slugInput.value = nameInput.value
+                .toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .replace(/đ/g, 'd')
+                .replace(/[^a-z0-9\s-]/g, '')
+                .trim()
+                .replace(/\s+/g, '-');
+        });
+
+        // Live discount hint
+        const basePriceInput  = document.querySelector('input[name="BasePrice"]');
+        const salePriceInput  = document.querySelector('input[name="SalePrice"]');
+        const discountHint    = document.getElementById('discountHint');
+        const discountValue   = document.getElementById('discountValue');
+
+        function updateDiscount() {
+            const base = parseFloat(basePriceInput.value) || 0;
+            const sale = parseFloat(salePriceInput.value) || 0;
+            if (base > 0 && sale > 0 && sale < base) {
+                const disc = Math.round((base - sale) / base * 100);
+                const save = (base - sale).toLocaleString('vi-VN');
+                discountValue.textContent = `${disc}% off · Save ${save} ₫`;
+                discountHint.classList.remove('d-none');
+            } else {
+                discountHint.classList.add('d-none');
+            }
+        }
+
+        basePriceInput.addEventListener('input', updateDiscount);
+        salePriceInput.addEventListener('input', updateDiscount);
+    </script>
+}

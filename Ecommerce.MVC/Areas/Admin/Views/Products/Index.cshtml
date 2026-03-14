@@ -1,202 +1,253 @@
-@model Ecommerce.MVC.Areas.Admin.Models.ProductIndexViewModel
+@model Ecommerce.Application.Common.PagedResult<Ecommerce.Application.DTOs.Product.ProductListDto>
 @using Ecommerce.Application.DTOs.Product
 @using Ecommerce.Domain.Enums
-@{
-    ViewData["Title"] = "Products";
-    var f = Model.Filter;
 
-    string StatusBadge(ProductStatus s) => s switch {
-        ProductStatus.Active       => "badge-success",
-        ProductStatus.Draft        => "badge-neutral",
-        ProductStatus.Inactive     => "badge-warning",
-        ProductStatus.OutOfStock   => "badge-danger",
-        ProductStatus.Discontinued => "badge-danger",
-        _ => "badge-neutral"
+@{
+    ViewData["Title"] = "Products Management";
+    var filter = ViewBag.Filter as ProductFilterParams ?? new ProductFilterParams();
+
+    string SortLink(string col) =>
+        filter.SortBy == col && filter.SortDirection == "asc" ? "desc" : "asc";
+
+    string SortIcon(string col)
+    {
+        if (filter.SortBy != col) return "bi bi-arrow-down-up text-muted opacity-50";
+        return filter.SortDirection == "asc" ? "bi bi-arrow-up" : "bi bi-arrow-down";
+    }
+
+    Dictionary<string, string> RouteData(string sortCol) => new()
+    {
+        ["sortBy"]        = sortCol,
+        ["sortDirection"] = SortLink(sortCol),
+        ["search"]        = filter.Search ?? "",
+        ["pageNumber"]    = "1",
+        ["pageSize"]      = filter.PageSize.ToString()
     };
 
-    string StockBadge(int stock) => stock <= 0 ? "badge-danger" : stock <= 5 ? "badge-warning" : "badge-neutral";
+    Dictionary<string, string> PageRoute(int page) => new()
+    {
+        ["pageNumber"]    = page.ToString(),
+        ["pageSize"]      = filter.PageSize.ToString(),
+        ["search"]        = filter.Search ?? "",
+        ["sortBy"]        = filter.SortBy ?? "",
+        ["sortDirection"] = filter.SortDirection ?? ""
+    };
 }
 
-<div class="page-header">
-    <div class="page-header-left">
-        <h1 class="page-title">Products</h1>
-        <p class="page-subtitle">@Model.Products.TotalCount total products</p>
-    </div>
-    <div class="page-actions">
-        @if (Model.LowStockCount > 0)
-        {
-            <a asp-controller="Inventory" asp-action="LowStock" class="btn btn-ghost" style="color:var(--warning);border-color:rgba(245,158,11,0.3)">
-                <i class="bi bi-exclamation-triangle-fill"></i>
-                @Model.LowStockCount Low Stock
-            </a>
-        }
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="bi bi-plus-lg"></i> New Product
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-semibold mb-0">Products</h4>
+            <small class="text-muted">Manage your product taxonomy</small>
+        </div>
+        <a asp-action="Create" class="btn btn-dark btn-sm px-3">
+            <i class="bi bi-plus me-1"></i> New Product
         </a>
     </div>
-</div>
 
-<!-- Filters -->
-<form method="get" asp-action="Index">
-    <div class="filter-bar">
-        <div class="filter-group" style="flex:1.5;min-width:200px">
-            <label class="filter-label">Search</label>
-            <div class="input-group">
-                <input type="text" name="Search" value="@f.Search" class="form-control" placeholder="Name, SKU, brand..." />
-                <span class="input-group-text"><i class="bi bi-search"></i></span>
-            </div>
-        </div>
-        <div class="filter-group" style="min-width:150px">
-            <label class="filter-label">Category</label>
-            <select name="CategoryId" class="form-select">
-                <option value="">All Categories</option>
-                @foreach (var c in Model.Categories)
-                {
-                    <option value="@c.Value"
-                            selected="@(f.CategoryId?.ToString() == c.Value)">
-                        @c.Text
-                    </option>
-                }
+    <div class="card border-0 shadow-sm">
 
-            </select>
-        </div>
-        <div class="filter-group" style="min-width:130px">
-            <label class="filter-label">Status</label>
-            <select name="Status" class="form-select">
-                <option value="">All Status</option>
-                @foreach (var s in Enum.GetValues<ProductStatus>())
-                {
-                    <option value="@((int)s)" selected="@(f.Status == s)">
-                        @s
-                    </option>
-                }
-            </select>
-        </div>
-        <div class="filter-group" style="min-width:110px">
-            <label class="filter-label">Stock</label>
-            <select name="InStock" class="form-select">
-                <option value="">All</option>
-                <option value="true" selected="@(f.InStock == true)">In Stock</option>
-                <option value="false" selected="@(f.InStock == false)">Out of Stock</option>
-            </select>
-        </div>
-        <div class="filter-group" style="min-width:90px">
-            <label class="filter-label">Min $</label>
-            <input type="number" name="MinPrice" value="@f.MinPrice" class="form-control" placeholder="0" step="0.01" min="0" />
-        </div>
-        <div class="filter-group" style="min-width:90px">
-            <label class="filter-label">Max $</label>
-            <input type="number" name="MaxPrice" value="@f.MaxPrice" class="form-control" placeholder="∞" step="0.01" min="0" />
-        </div>
-        <div class="filter-group" style="align-self:flex-end;display:flex;gap:6px">
-            <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-funnel-fill"></i> Filter</button>
-            <a asp-action="Index" class="btn btn-ghost btn-sm"><i class="bi bi-x-lg"></i></a>
-        </div>
-        <input type="hidden" name="PageSize" value="@f.PageSize" />
-    </div>
-</form>
+        <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center gap-2 py-3">
 
-<!-- Table -->
-<div class="card">
-    <div class="table-wrap">
-        <table class="data-table">
-            <thead>
-            <tr>
-                <th style="width:52px"></th>
-                <th>Product</th>
-                <th>SKU</th>
-                <th>Category</th>
-                <th>Price</th>
-                <th>Status</th>
-                <th>Stock</th>
-                <th style="width:48px;text-align:center">⭐</th>
-                <th style="text-align:right">Actions</th>
-            </tr>
-            </thead>
-            <tbody>
-            @foreach (var p in Model.Products.Items)
-            {
-                <tr class="@(p.TotalStock <= 0 ? "row-danger" : p.TotalStock <= 5 ? "row-warning" : "")">
-                    <td>
-                        @if (!string.IsNullOrEmpty(p.PrimaryImageUrl))
-                        {
-                            <img src="@p.PrimaryImageUrl" alt="" class="img-thumb" />
-                        }
-                        else
-                        {
-                            <div class="img-placeholder"><i class="bi bi-image"></i></div>
-                        }
-                    </td>
-                    <td>
-                        <a asp-action="Details" asp-route-id="@p.Id"
-                        style="color:var(--text-primary);text-decoration:none;font-weight:600">@p.Name</a>
-                        @if (!string.IsNullOrEmpty(p.Brand))
-                        {
-                            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">@p.Brand</div>
-                        }
-                    </td>
-                    <td><code>@(p.SKU ?? "—")</code></td>
-                    <td style="color:var(--text-muted)">@p.CategoryName</td>
-                    <td>
-                        @if (p.SalePrice.HasValue)
-                        {
-                            <div style="text-decoration:line-through;color:var(--text-muted);font-size:11px">$@p.BasePrice.ToString("N2")</div>
-                            <div style="color:var(--danger);font-weight:700">$@p.SalePrice.Value.ToString("N2")</div>
-                        }
-                        else
-                        {
-                            <span style="font-weight:600">$@p.BasePrice.ToString("N2")</span>
-                        }
-                    </td>
-                    <td><span class="badge @StatusBadge(p.Status)">@p.Status</span></td>
-                    <td>
-                        <span class="badge @StockBadge(p.TotalStock)">
-                            @(p.TotalStock <= 0 ? "Out" : p.TotalStock.ToString())
-                        </span>
-                    </td>
-                    <td style="text-align:center">
-                        @if (p.IsFeatured) { <i class="bi bi-star-fill" style="color:var(--accent)"></i> }
-                    </td>
-                    <td>
-                        <div style="display:flex;gap:4px;justify-content:flex-end">
-                            <a asp-action="Details" asp-route-id="@p.Id" class="btn btn-ghost btn-xs" title="View"><i class="bi bi-eye"></i></a>
-                            <a asp-action="Edit"    asp-route-id="@p.Id" class="btn btn-ghost btn-xs" title="Edit"><i class="bi bi-pencil"></i></a>
-                            <form asp-action="Delete" asp-route-id="@p.Id" method="post" style="display:inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-danger btn-xs" title="Delete"
-                                        data-confirm="Delete '@p.Name'?">
-                                    <i class="bi bi-trash3"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            }
-            @if (!Model.Products.Items.Any())
-            {
-                <tr><td colspan="9">
-                    <div class="table-empty">
-                        <i class="bi bi-box-seam"></i>
-                        No products found. Try adjusting your filters.
-                    </div>
-                </td></tr>
-            }
-            </tbody>
-        </table>
-    </div>
+            <ul class="nav nav-pills me-auto gap-1">
+                <li class="nav-item">
+                    <a asp-action="Index" class="nav-link active px-3 py-1">
+                        Active
+                        <span class="badge bg-dark ms-1">@Model.TotalCount</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a asp-action="Trash" class="nav-link text-muted px-3 py-1">
+                        <i class="bi bi-trash me-1"></i> Trash
+                    </a>
+                </li>
+            </ul>
 
-    @if (Model.Products.TotalPages > 1)
-    {
-        ViewBag.RouteValues = new Dictionary<string, object>
+            <form method="get" class="d-flex align-items-center flex-wrap gap-2">
+                <div class="input-group input-group-sm" style="width:220px">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" value="@filter.Search"
+                        class="form-control border-start-0 ps-0"
+                        placeholder="Search products…" />
+                </div>
+
+                <select name="Status" class="form-select form-select-sm" style="width:130px" onchange="this.form.submit()">
+                    <option value="">All status</option>
+                    @foreach (var s in Enum.GetValues<ProductStatus>())
+                    {
+                        <option value="@((int)s)" selected="@(filter.Status.HasValue && filter.Status.Value == s)">@s</option>
+                    }
+                </select>                
+
+                <select name="pageSize" class="form-select form-select-sm" style="width:110px"
+                        onchange="this.form.submit()">
+                    @foreach (var size in new[] { 10, 25, 50 })
+                    {
+                        <option value="@size" selected="@(filter.PageSize == size)">@size / page</option>
+                    }
+                </select>
+
+                <input type="hidden" name="sortBy"        value="@filter.SortBy" />
+                <input type="hidden" name="sortDirection" value="@filter.SortDirection" />
+
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Apply</button>
+            </form>
+        </div>
+
+        @if (!Model.Items.Any())
         {
-            ["Search"] = f.Search ?? "",
-            ["CategoryId"] = f.CategoryId?.ToString() ?? "",
-            ["Status"] = f.Status?.ToString() ?? "",
-            ["InStock"] = f.InStock?.ToString() ?? "",
-            ["PageSize"] = f.PageSize,
-            ["SortBy"] = f.SortBy,
-            ["SortDirection"] = f.SortDirection
-        };
-        @await Html.PartialAsync("_Pagination", Model.Products)
-    }
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-folder2-open display-4 d-block mb-2"></i>
+                <p class="mb-0">No products found.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light text-uppercase" style="font-size:.7rem;letter-spacing:.05em">
+                        <tr>
+                            <th>Image</th>
+                            <th>
+                                <a asp-action="Index" asp-all-route-data="@RouteData("name")"
+                                    class="text-dark text-decoration-none d-flex align-items-center gap-1">
+                                    Name <i class="@SortIcon("name")"></i>
+                                </a>
+                            </th>
+                            <th>Category</th>
+                            <th>SKU</th>
+                            <th>Total Variants </th>
+                            <th>Total Stock</th>
+                            <th>Status</th>
+                            <th>
+                                <a asp-action="Index" asp-all-route-data="@RouteData("createdat")"
+                                    class="text-dark text-decoration-none d-flex align-items-center gap-1">
+                                    Created <i class="@SortIcon("createdat")"></i>
+                                </a>
+                            </th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (ProductListDto item in Model.Items)
+                        {
+                            <tr>
+                                <td style="width:60px">
+                                    @if (!string.IsNullOrEmpty(item.PrimaryImageUrl))
+                                    {
+                                        <img src="@item.PrimaryImageUrl" class="rounded" width="40">
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-medium">@item.Name</span>
+                                    </div>
+                                </td> 
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-medium">@item.CategoryName</span>
+                                    </div>
+                                </td> 
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-medium">@item.SKU</span>
+                                    </div>
+                                </td>   
+                                
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-medium">@item.VariantCount</span>
+                                    </div>
+                                </td> 
+
+
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-medium">@item.TotalStock</span>
+                                    </div>
+                                </td> 
+
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-medium">@item.Status</span>
+                                    </div>
+                                </td> 
+                                <td class="text-muted text-nowrap">
+                                    @item.CreatedAt.ToString("dd/MM/yyyy")
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        <a asp-action="Detail" asp-route-id="@item.Id"
+                                            class="btn btn-light btn-sm" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@item.Id"
+                                            class="btn btn-light btn-sm" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a asp-action="SoftDelete" asp-route-id="@item.Id"
+                                            class="btn btn-light btn-sm text-danger" title="Move to Trash"
+                                            onclick="return confirm('Move this product to trash?')">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer bg-white border-top d-flex align-items-center justify-content-between flex-wrap gap-2 py-3">
+                <small class="text-muted">
+                    Showing
+                    <strong>@(((Model.PageNumber - 1) * Model.PageSize) + 1)</strong>–<strong>@(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount))</strong>
+                    of <strong>@Model.TotalCount</strong> Products
+                </small>
+
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 gap-1">
+                        <li class="page-item @(Model.PageNumber <= 1 ? "disabled" : "")">
+                            <a class="page-link rounded" asp-action="Index"
+                            asp-all-route-data="@PageRoute(Model.PageNumber - 1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        @for (int p = Math.Max(1, Model.PageNumber - 2); p <= Math.Min(Model.TotalPages, Model.PageNumber + 2); p++)
+                        {
+                            <li class="page-item @(p == Model.PageNumber ? "active" : "")">
+                                <a class="page-link rounded" asp-action="Index"
+                                asp-all-route-data="@PageRoute(p)">@p</a>
+                            </li>
+                        }
+
+                        <li class="page-item @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link rounded" asp-action="Index"
+                            asp-all-route-data="@PageRoute(Model.PageNumber + 1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
 </div>
+
+@await Html.PartialAsync("_ProductToast")
+
+@section Scripts {
+    <script>
+        // Auto-dismiss Bootstrap toasts
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.toast').forEach(el => {
+                const toast = new bootstrap.Toast(el, { delay: 3500 });
+                toast.show();
+            });
+        });
+    </script>
+}

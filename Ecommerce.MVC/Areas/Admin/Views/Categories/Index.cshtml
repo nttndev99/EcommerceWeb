@@ -2,7 +2,7 @@
 @using Ecommerce.Application.DTOs.Category
 
 @{
-    ViewData["Title"] = "Categories";
+    ViewData["Title"] = "Categories Management";
     var filter = ViewBag.Filter as CategoryFilterParams ?? new CategoryFilterParams();
 
     string SortLink(string col) =>
@@ -110,7 +110,7 @@
                         <tr>
                             <th>
                                 <a asp-action="Index" asp-all-route-data="@RouteData("name")"
-                                   class="text-dark text-decoration-none d-flex align-items-center gap-1">
+                                    class="text-dark text-decoration-none d-flex align-items-center gap-1">
                                     Name <i class="@SortIcon("name")"></i>
                                 </a>
                             </th>

@@ -1,4 +1,5 @@
-
+using System.Linq.Expressions;
+using System.Text.Json;
 using Ecommerce.Application.Common;
 using Ecommerce.Application.DTOs.Inventory;
 using Ecommerce.Application.DTOs.Product;
@@ -7,7 +8,6 @@ using Ecommerce.Application.Interfaces.Services;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace Ecommerce.Application.Services;
 
@@ -15,68 +15,33 @@ public class ProductService : IProductService
 {
     private readonly IUnitOfWork _uow;
 
-    public ProductService(IUnitOfWork uow)
-    {
-        _uow = uow;
-    }
+    public ProductService(IUnitOfWork uow) => _uow = uow;
+
+    // ────────────────────────────────────────────────────────────────────────────
+    //  GET PAGED
+    // ────────────────────────────────────────────────────────────────────────────
 
     public async Task<PagedResult<ProductListDto>> GetPagedAsync(ProductFilterParams filter, CancellationToken ct = default)
     {
-        var query = _uow.Products.Query()
-            .Where(p => !p.IsDeleted)
-            .AsNoTracking();
+        var pageSize   = filter.PageSize   > 0 ? filter.PageSize   : 10;
+        var pageNumber = filter.PageNumber > 0 ? filter.PageNumber : 1;
 
-        // Search
-        if (!string.IsNullOrWhiteSpace(filter.Search))
-        {
-            var search = filter.Search.ToLower();
-            query = query.Where(p =>
-                p.Name.ToLower().Contains(search) ||
-                p.SKU!.ToLower().Contains(search) ||
-                p.Brand!.ToLower().Contains(search));
-        }
+        // 1. Base query qua Repository — không dùng DbContext trực tiếp
+        IQueryable<Product> query = _uow.Products.Query().Where(p => !p.IsDeleted).AsNoTracking();
 
-        // Filters
-        if (filter.CategoryId.HasValue)
-            query = query.Where(p => p.CategoryId == filter.CategoryId.Value);
+        // 2. Apply filters
+        query = ApplyFilters(query, filter);
 
-        if (filter.Status.HasValue)
-            query = query.Where(p => p.Status == filter.Status.Value);
-
-        if (filter.IsFeatured.HasValue)
-            query = query.Where(p => p.IsFeatured == filter.IsFeatured.Value);
-
-        if (!string.IsNullOrWhiteSpace(filter.Brand))
-            query = query.Where(p => p.Brand != null && p.Brand.ToLower().Contains(filter.Brand.ToLower()));
-
-        if (filter.MinPrice.HasValue)
-            query = query.Where(p => p.BasePrice >= filter.MinPrice.Value);
-
-        if (filter.MaxPrice.HasValue)
-            query = query.Where(p => p.BasePrice <= filter.MaxPrice.Value);
-
-        if (filter.InStock.HasValue)
-        {
-            query = filter.InStock.Value
-                ? query.Where(p => p.Inventories.Any(i => i.Quantity - i.ReservedQuantity > 0))
-                : query.Where(p => !p.Inventories.Any(i => i.Quantity - i.ReservedQuantity > 0));
-        }
-
+        // 3. Count trước khi sort / page
         var totalCount = await query.CountAsync(ct);
 
-        // Sorting
-        query = filter.SortBy?.ToLower() switch
-        {
-            "name" => filter.SortDirection == "desc" ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name),
-            "price" => filter.SortDirection == "desc" ? query.OrderByDescending(p => p.BasePrice) : query.OrderBy(p => p.BasePrice),
-            "status" => filter.SortDirection == "desc" ? query.OrderByDescending(p => p.Status) : query.OrderBy(p => p.Status),
-            _ => filter.SortDirection == "desc" ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt)
-        };
+        // 4. Sort
+        IOrderedQueryable<Product> sorted = ApplySort(query, filter);
 
-        // Optimized projection
-        var items = await query
-            .Skip((filter.PageNumber - 1) * filter.PageSize)
-            .Take(filter.PageSize)
+        // 5. Page + Project
+        var items = await sorted
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .Select(p => new ProductListDto
             {
                 Id = p.Id,
@@ -87,90 +52,78 @@ public class ProductService : IProductService
                 SKU = p.SKU,
                 Status = p.Status,
                 IsFeatured = p.IsFeatured,
-                CategoryName = p.Category.Name,
                 Brand = p.Brand,
+                CreatedAt = p.CreatedAt,
+                VariantCount = _uow.ProductVariants.Query()
+                    .Where(v => v.ProductId == p.Id && !v.IsDeleted)
+                    .Count(),
+                CategoryName = _uow.Categories.Query()
+                    .Where(c => c.Id == p.CategoryId)
+                    .Select(c => c.Name)
+                    .FirstOrDefault(), // NOTE: tranh NULL khi category bi xoa hoac khong co => tranh loi paginate
+
+                TotalStock = _uow.Inventories.Query()
+                    .Where(i => i.ProductId == p.Id)
+                    .Sum(i => (int?)(i.Quantity - i.ReservedQuantity)) ?? 0, // NOTE: tranh null khi product chua co inventory nao => tranh loi paginate
+
                 PrimaryImageUrl = p.Images
                     .Where(i => i.IsPrimary)
                     .Select(i => i.ImageUrl)
-                    .FirstOrDefault(),
-                TotalStock = p.Inventories.Sum(i => i.Quantity - i.ReservedQuantity),
-                CreatedAt = p.CreatedAt
+                    .FirstOrDefault()
             })
             .ToListAsync(ct);
 
-        return PagedResult<ProductListDto>.Create(items, totalCount, filter.PageNumber, filter.PageSize);
+        return PagedResult<ProductListDto>.Create(items, totalCount, pageNumber, pageSize);
     }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    //  GET BY ID
+    // ────────────────────────────────────────────────────────────────────────────
 
     public async Task<ProductDto?> GetByIdAsync(int id, CancellationToken ct = default)
     {
-        return await _uow.Products.Query()
-            .Where(p => p.Id == id && !p.IsDeleted)
-            .AsNoTracking()
+        var dto = await _uow.Products.Query()
+            .Where(p => p.Id == id)
             .Select(p => new ProductDto
             {
                 Id = p.Id,
                 Name = p.Name,
                 Slug = p.Slug,
-                Description = p.Description,
-                ShortDescription = p.ShortDescription,
                 BasePrice = p.BasePrice,
                 SalePrice = p.SalePrice,
+                Description      = p.Description,
+                ShortDescription = p.ShortDescription,
                 SKU = p.SKU,
                 Status = p.Status,
                 IsFeatured = p.IsFeatured,
-                CategoryId = p.CategoryId,
-                CategoryName = p.Category.Name,
                 Brand = p.Brand,
-                Tags = p.Tags,
-                PrimaryImageUrl = p.Images.Where(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault(),
-                TotalStock = p.Inventories.Sum(i => i.Quantity - i.ReservedQuantity),
-                VariantCount = p.Variants.Count(v => !v.IsDeleted),
                 CreatedAt = p.CreatedAt,
-                Variants = p.Variants.Where(v => !v.IsDeleted).Select(v => new ProductVariantDto
-                {
-                    Id = v.Id,
-                    ProductId = v.ProductId,
-                    Name = v.Name,
-                    SKU = v.SKU,
-                    Price = v.Price,
-                    SalePrice = v.SalePrice,
-                    Color = v.Color,
-                    Size = v.Size,
-                    Material = v.Material,
-                    ImageUrl = v.ImageUrl,
-                    IsActive = v.IsActive,
-                    DisplayOrder = v.DisplayOrder,
-                    Stock = v.Inventories.Sum(i => i.Quantity - i.ReservedQuantity)
-                }).OrderBy(v => v.DisplayOrder).ToList(),
-                Images = p.Images.Select(i => new ProductImageDto
-                {
-                    Id = i.Id,
-                    ProductId = i.ProductId,
-                    ImageUrl = i.ImageUrl,
-                    AltText = i.AltText,
-                    IsPrimary = i.IsPrimary,
-                    DisplayOrder = i.DisplayOrder
-                }).OrderBy(i => i.DisplayOrder).ToList(),
-                Inventories = p.Inventories.Select(i => new InventoryDto
-                {
-                    Id = i.Id,
-                    ProductId = i.ProductId,
-                    ProductVariantId = i.ProductVariantId,
-                    VariantName = i.ProductVariant != null ? i.ProductVariant.Name : null,
-                    Quantity = i.Quantity,
-                    ReservedQuantity = i.ReservedQuantity,
-                    AvailableQuantity = i.Quantity - i.ReservedQuantity,
-                    LowStockThreshold = i.LowStockThreshold,
-                    WarehouseLocation = i.WarehouseLocation,
-                    IsLowStock = (i.Quantity - i.ReservedQuantity) <= i.LowStockThreshold,
-                    IsOutOfStock = (i.Quantity - i.ReservedQuantity) <= 0,
-                    LastStockUpdate = i.LastStockUpdate
-                }).ToList()
+                CategoryName = _uow.Categories.Query()
+                    .Where(c => c.Id == p.CategoryId)
+                    .Select(c => c.Name)
+                    .FirstOrDefault(), // NOTE: tranh NULL khi category bi xoa hoac khong co => tranh loi paginate
+
+                TotalStock = _uow.Inventories.Query()
+                    .Where(i => i.ProductId == p.Id)
+                    .Sum(i => (int?)(i.Quantity - i.ReservedQuantity)) ?? 0, // NOTE: tranh null khi product chua co inventory nao => tranh loi paginate
+
+                PrimaryImageUrl = p.Images
+                    .Where(i => i.IsPrimary)
+                    .Select(i => i.ImageUrl)
+                    .FirstOrDefault()
             })
             .FirstOrDefaultAsync(ct);
+
+        return dto;
+
     }
 
-    public async Task<Result<ProductDto>> CreateAsync(CreateProductDto dto, CancellationToken ct = default)
+    // ────────────────────────────────────────────────────────────────────────────
+    //  CREATE
+    // ────────────────────────────────────────────────────────────────────────────
+
+    public async Task<Result<ProductDto>> CreateAsync(
+        CreateProductDto dto, CancellationToken ct = default)
     {
         var slug = string.IsNullOrWhiteSpace(dto.Slug)
             ? SlugHelper.GenerateSlug(dto.Name)
@@ -179,48 +132,51 @@ public class ProductService : IProductService
         if (await _uow.Products.SlugExistsAsync(slug, null, ct))
             return Result<ProductDto>.Failure($"Slug '{slug}' already exists.");
 
-        var categoryExists = await _uow.Categories.ExistsAsync(c => c.Id == dto.CategoryId && !c.IsDeleted, ct);
-        if (!categoryExists)
+        if (!await _uow.Categories.ExistsAsync(c => c.Id == dto.CategoryId && !c.IsDeleted, ct))
             return Result<ProductDto>.Failure("Category not found.");
 
         var product = new Product
         {
-            Name = dto.Name,
-            Slug = slug,
-            Description = dto.Description,
+            Name             = dto.Name,
+            Slug             = slug,
+            Description      = dto.Description,
             ShortDescription = dto.ShortDescription,
-            BasePrice = dto.BasePrice,
-            SalePrice = dto.SalePrice,
-            SKU = dto.SKU,
-            Status = dto.Status,
-            IsFeatured = dto.IsFeatured,
-            CategoryId = dto.CategoryId,
-            Brand = dto.Brand,
-            Weight = dto.Weight,
-            Tags = dto.Tags
+            BasePrice        = dto.BasePrice,
+            SalePrice        = dto.SalePrice,
+            SKU              = dto.SKU,
+            Status           = dto.Status,
+            IsFeatured       = dto.IsFeatured,
+            CategoryId       = dto.CategoryId,
+            Brand            = dto.Brand,
+            Weight           = dto.Weight,
+            Tags             = dto.Tags
         };
 
         await _uow.Products.AddAsync(product, ct);
         await _uow.SaveChangesAsync(ct);
 
-        // Create default inventory record
-        var inventory = new Inventory
+        // Default inventory (product-level, chưa có variant)
+        await _uow.Inventories.AddAsync(new Inventory
         {
-            ProductId = product.Id,
+            ProductId        = product.Id,
             ProductVariantId = null,
-            Quantity = 0,
+            Quantity         = 0,
             ReservedQuantity = 0
-        };
-        await _uow.Inventories.AddAsync(inventory, ct);
+        }, ct);
         await _uow.SaveChangesAsync(ct);
 
         return Result<ProductDto>.Success(await GetByIdAsync(product.Id, ct) ?? new ProductDto());
     }
 
-    public async Task<Result<ProductDto>> UpdateAsync(UpdateProductDto dto, CancellationToken ct = default)
+    // ────────────────────────────────────────────────────────────────────────────
+    //  UPDATE
+    // ────────────────────────────────────────────────────────────────────────────
+
+    public async Task<Result<ProductDto>> UpdateAsync(
+        UpdateProductDto dto, CancellationToken ct = default)
     {
         var product = await _uow.Products.GetByIdAsync(dto.Id, ct);
-        if (product == null || product.IsDeleted)
+        if (product is null || product.IsDeleted)
             return Result<ProductDto>.Failure("Product not found.");
 
         var slug = string.IsNullOrWhiteSpace(dto.Slug)
@@ -230,20 +186,19 @@ public class ProductService : IProductService
         if (await _uow.Products.SlugExistsAsync(slug, dto.Id, ct))
             return Result<ProductDto>.Failure($"Slug '{slug}' already exists.");
 
-        product.Name = dto.Name;
-        product.Slug = slug;
-        product.Description = dto.Description;
+        product.Name             = dto.Name;
+        product.Slug             = slug;
+        product.Description      = dto.Description;
         product.ShortDescription = dto.ShortDescription;
-        product.BasePrice = dto.BasePrice;
-        product.SalePrice = dto.SalePrice;
-        product.SKU = dto.SKU;
-        product.Status = dto.Status;
-        product.IsFeatured = dto.IsFeatured;
-        product.CategoryId = dto.CategoryId;
-        product.Brand = dto.Brand;
-        product.Weight = dto.Weight;
-        product.Tags = dto.Tags;
-        product.UpdatedAt = DateTime.UtcNow;
+        product.BasePrice        = dto.BasePrice;
+        product.SalePrice        = dto.SalePrice;
+        product.SKU              = dto.SKU;
+        product.Status           = dto.Status;
+        product.IsFeatured       = dto.IsFeatured;
+        product.CategoryId       = dto.CategoryId;
+        product.Brand            = dto.Brand;
+        product.Tags             = dto.Tags;
+        product.UpdatedAt        = DateTime.UtcNow;
 
         _uow.Products.Update(product);
         await _uow.SaveChangesAsync(ct);
@@ -251,16 +206,191 @@ public class ProductService : IProductService
         return Result<ProductDto>.Success(await GetByIdAsync(product.Id, ct) ?? new ProductDto());
     }
 
-    public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
+    // ────────────────────────────────────────────────────────────────────────────
+    //  SOFT DELETE
+    // ────────────────────────────────────────────────────────────────────────────
+
+    public async Task<Result> SoftDeleteAsync(int id, CancellationToken ct = default)
     {
         var product = await _uow.Products.GetByIdAsync(id, ct);
+
         if (product == null || product.IsDeleted)
             return Result.Failure("Product not found.");
 
+        // Soft delete variants
+        var variants = await _uow.ProductVariants.Query()
+            .Where(v => v.ProductId == id && !v.IsDeleted)
+            .ToListAsync(ct);
+
+        foreach (var variant in variants)
+        {
+            variant.IsDeleted = true;
+            variant.UpdatedAt = DateTime.UtcNow;
+            _uow.ProductVariants.Update(variant);
+        }
+
+        // Soft delete product
         product.IsDeleted = true;
         product.UpdatedAt = DateTime.UtcNow;
+
         _uow.Products.Update(product);
+
+        await _uow.SaveChangesAsync(ct);
+
+        return Result.Success();
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    //  HARD DELETE
+    // ────────────────────────────────────────────────────────────────────────────
+
+    public async Task<Result> HardDeleteAsync(int id, CancellationToken ct = default)
+    {
+        var product = await _uow.Products.Query()
+            .IgnoreQueryFilters()
+            .Include(p => p.Variants)
+            .FirstOrDefaultAsync(p => p.Id == id, ct);
+
+        if (product is null)
+            return Result.Failure("Product not found.");
+
+        if (product.Variants.Any())
+            return Result.Failure("Cannot permanently delete a product that still has variants.");
+
+        _uow.Products.Remove(product);
         await _uow.SaveChangesAsync(ct);
         return Result.Success();
     }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    //  RESTORE
+    // ────────────────────────────────────────────────────────────────────────────
+
+    public async Task<Result<ProductDto>> RestoreAsync(int id, CancellationToken ct = default)
+    {
+        var product = await _uow.Products.Query()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.Id == id && p.IsDeleted, ct);
+
+        if (product is null)
+            return Result<ProductDto>.Failure("Deleted product not found.");
+
+        product.IsDeleted = false;
+        product.UpdatedAt = DateTime.UtcNow;
+        _uow.Products.Update(product);
+        await _uow.SaveChangesAsync(ct);
+
+        return Result<ProductDto>.Success(await GetByIdAsync(product.Id, ct) ?? new ProductDto());
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    //  GET DELETED
+    // ────────────────────────────────────────────────────────────────────────────
+
+    public async Task<PagedResult<ProductListDto>> GetDeletedAsync(ProductFilterParams filter, CancellationToken ct = default)
+    {
+        var pageSize   = filter.PageSize   > 0 ? filter.PageSize   : 10;
+        var pageNumber = filter.PageNumber > 0 ? filter.PageNumber : 1;
+
+        // 1. Base query qua Repository — không dùng DbContext trực tiếp
+        IQueryable<Product> query = _uow.Products.Query().IgnoreQueryFilters().Where(p => p.IsDeleted == true).AsNoTracking();
+
+        // 2. Apply filters
+        query = ApplyFilters(query, filter);
+
+        // 3. Count trước khi sort / page
+        var totalCount = await query.CountAsync(ct);
+
+        // 4. Sort
+        IOrderedQueryable<Product> sorted = ApplySort(query, filter);
+
+        // 5. Page + Project
+        var items = await sorted
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new ProductListDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Slug = p.Slug,
+                BasePrice = p.BasePrice,
+                SalePrice = p.SalePrice,
+                SKU = p.SKU,
+                Status = p.Status,
+                IsFeatured = p.IsFeatured,
+                Brand = p.Brand,
+                CreatedAt = p.CreatedAt,
+                CategoryName = p.Category != null ? p.Category.Name : null, // NOTE: tranh NULL khi category bi xoa hoac khong co => tranh loi paginate
+
+                TotalStock = _uow.Inventories.Query()
+                    .Where(i => i.ProductId == p.Id)
+                    .Sum(i => (int?)(i.Quantity - i.ReservedQuantity)) ?? 0, // NOTE: tranh null khi product chua co inventory nao => tranh loi paginate
+
+                PrimaryImageUrl = p.Images
+                    .Where(i => i.IsPrimary)
+                    .Select(i => i.ImageUrl)
+                    .FirstOrDefault()
+            })
+            .ToListAsync(ct);
+
+        return PagedResult<ProductListDto>.Create(items, totalCount, pageNumber, pageSize);
+    }
+
+    // ────────────────────────────────────────────────────────────────────────────
+    //  PRIVATE HELPERS
+    // ────────────────────────────────────────────────────────────────────────────
+
+    private static IQueryable<Product> ApplyFilters(IQueryable<Product> query, ProductFilterParams f)
+    {
+        if (!string.IsNullOrWhiteSpace(f.Search))
+        {
+            var s = f.Search.ToLower();
+            query = query.Where(p =>
+                p.Name.ToLower().Contains(s) ||
+                (p.SKU  != null && p.SKU.ToLower().Contains(s)) ||
+                (p.Brand != null && p.Brand.ToLower().Contains(s)));
+        }
+
+        if (f.CategoryId.HasValue)
+            query = query.Where(p => p.CategoryId == f.CategoryId.Value);
+
+        if (f.Status.HasValue)
+            query = query.Where(p => p.Status == f.Status.Value);
+
+        if (f.IsFeatured.HasValue)
+            query = query.Where(p => p.IsFeatured == f.IsFeatured.Value);
+
+        if (!string.IsNullOrWhiteSpace(f.Brand))
+            query = query.Where(p =>
+                p.Brand != null && p.Brand.ToLower().Contains(f.Brand.ToLower()));
+
+        if (f.MinPrice.HasValue)
+            query = query.Where(p => p.BasePrice >= f.MinPrice.Value);
+
+        if (f.MaxPrice.HasValue)
+            query = query.Where(p => p.BasePrice <= f.MaxPrice.Value);
+
+        if (f.InStock.HasValue)
+            query = f.InStock.Value
+                ? query.Where(p => p.Inventories.Any(i => i.Quantity - i.ReservedQuantity > 0))
+                : query.Where(p => !p.Inventories.Any(i => i.Quantity - i.ReservedQuantity > 0));
+
+        return query;
+    }
+
+    private static IOrderedQueryable<Product> ApplySort( IQueryable<Product> query, ProductFilterParams f)
+    {
+        var desc = f.SortDirection?.ToLower() == "desc";
+
+        return f.SortBy?.ToLower() switch
+        {
+            "name"   => desc ? query.OrderByDescending(p => p.Name)      : query.OrderBy(p => p.Name),
+            "price"  => desc ? query.OrderByDescending(p => p.BasePrice) : query.OrderBy(p => p.BasePrice),
+            "status" => desc ? query.OrderByDescending(p => p.Status)    : query.OrderBy(p => p.Status),
+            _        => desc ? query.OrderByDescending(p => p.CreatedAt) : query.OrderBy(p => p.CreatedAt)
+        };
+    }
+
+
+
 }

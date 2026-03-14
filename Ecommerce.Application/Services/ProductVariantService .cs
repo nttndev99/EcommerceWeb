@@ -80,6 +80,62 @@ namespace Ecommerce.Application.Services
                 .FirstOrDefaultAsync(ct);
         }
 
+        public async Task<IEnumerable<ProductVariantDto>> GetByProductIdAsync(int productId, CancellationToken ct = default)
+        {
+            var variants = await _uow.ProductVariants
+                .FindAsync(v => v.ProductId == productId && !v.IsDeleted, ct);
+
+            return variants.Select(v => new ProductVariantDto
+            {
+                Id           = v.Id,
+                ProductId    = v.ProductId,
+                Name         = v.Name,
+                SKU          = v.SKU,
+                Price        = v.Price,
+                SalePrice    = v.SalePrice,
+                Color        = v.Color,
+                Size         = v.Size,
+                Material     = v.Material,
+                ImageUrl     = v.ImageUrl,
+                IsActive     = v.IsActive,
+                DisplayOrder = v.DisplayOrder,
+                Stock        = v.Inventories?.Sum(i => i.AvailableQuantity) ?? 0
+            }).OrderBy(v => v.DisplayOrder);
+        }
+
+        public async Task<PagedResult<ProductVariantDto>> GetByProductIdPagedAsync(int productId, int pageNumber, int pageSize, CancellationToken ct = default)
+        {
+            var query = _uow.ProductVariants.Query()
+                .Where(v => v.ProductId == productId && !v.IsDeleted)
+                .AsNoTracking()
+                .OrderBy(v => v.DisplayOrder);
+
+            var totalCount = await query.CountAsync(ct);
+
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(v => new ProductVariantDto
+                {
+                    Id           = v.Id,
+                    ProductId    = v.ProductId,
+                    Name         = v.Name,
+                    SKU          = v.SKU,
+                    Price        = v.Price,
+                    SalePrice    = v.SalePrice,
+                    Color        = v.Color,
+                    Size         = v.Size,
+                    Material     = v.Material,
+                    ImageUrl     = v.ImageUrl,
+                    IsActive     = v.IsActive,
+                    DisplayOrder = v.DisplayOrder,
+                    Stock        = v.Inventories.Sum(i => i.Quantity - i.ReservedQuantity)
+                })
+                .ToListAsync(ct);
+
+            return PagedResult<ProductVariantDto>.Create(items, totalCount, pageNumber, pageSize);
+        }
+
         public async Task<Result<ProductVariantDto>> CreateAsync(CreateProductVariantDto dto, CancellationToken ct = default)
         {
             if (!string.IsNullOrWhiteSpace(dto.SKU) && await _uow.ProductVariants.SKUExistsAsync(dto.SKU, null, ct))
@@ -140,17 +196,124 @@ namespace Ecommerce.Application.Services
             return Result<ProductVariantDto>.Success(await GetByIdAsync(variant.Id, ct) ?? new ProductVariantDto());
         }
 
-        public async Task<Result> DeleteAsync(int id, CancellationToken ct = default)
+
+
+        public async Task<IEnumerable<ProductVariantDto>> GetTrashedByProductIdAsync(
+            int productId, CancellationToken ct = default)
+        {
+            // IgnoreQueryFilters() nếu có Global Query Filter !IsDeleted
+            var variants = await _uow.ProductVariants.Query()
+                .IgnoreQueryFilters()
+                .Where(v => v.ProductId == productId && v.IsDeleted)
+                .OrderByDescending(v => v.UpdatedAt)
+                .ToListAsync(ct);
+        
+            return variants.Select(MapToDto);
+        }
+        
+        public async Task<Result> SoftDeleteAsync(int id, CancellationToken ct = default)
         {
             var variant = await _uow.ProductVariants.GetByIdAsync(id, ct);
-            if (variant == null || variant.IsDeleted)
+            if (variant is null || variant.IsDeleted)
                 return Result.Failure("Variant not found.");
+        
             variant.IsDeleted = true;
+            variant.IsActive  = false;
             variant.UpdatedAt = DateTime.UtcNow;
+        
             _uow.ProductVariants.Update(variant);
             await _uow.SaveChangesAsync(ct);
             return Result.Success();
         }
+        
+        public async Task<Result> RestoreAsync(int id, CancellationToken ct = default)
+        {
+            var variant = await _uow.ProductVariants.Query()
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(v => v.Id == id && v.IsDeleted, ct);
+        
+            if (variant is null)
+                return Result.Failure("Variant not found in trash.");
+        
+            variant.IsDeleted = false;
+            variant.IsActive  = true;
+            variant.UpdatedAt = DateTime.UtcNow;
+        
+            _uow.ProductVariants.Update(variant);
+            await _uow.SaveChangesAsync(ct);
+            return Result.Success();
+        }
+        
+        public async Task<Result> HardDeleteAsync(int id, CancellationToken ct = default)
+        {
+            var variant = await _uow.ProductVariants.Query()
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(v => v.Id == id, ct);
+        
+            if (variant is null)
+                return Result.Failure("Variant not found.");
+        
+            var inventories = await _uow.Inventories.Query()
+                .Where(i => i.ProductVariantId == id)
+                .ToListAsync(ct);
+        
+            _uow.Inventories.RemoveRange(inventories);
+            _uow.ProductVariants.Remove(variant);
+            await _uow.SaveChangesAsync(ct);
+            return Result.Success();
+        }
+        
+        public async Task<Result> EmptyTrashByProductAsync(int productId, CancellationToken ct = default)
+        {
+            var trashed = await _uow.ProductVariants.Query()
+                .IgnoreQueryFilters()
+                .Where(v => v.ProductId == productId && v.IsDeleted)
+                .ToListAsync(ct);
+        
+            foreach (var v in trashed)
+            {
+                var inventories = await _uow.Inventories.Query()
+                    .Where(i => i.ProductVariantId == v.Id)
+                    .ToListAsync(ct);
+                _uow.Inventories.RemoveRange(inventories);
+                _uow.ProductVariants.Remove(v);
+            }
+        
+            await _uow.SaveChangesAsync(ct);
+            return Result.Success();
+        }
+
+
+
+
+
+
+
+
+        // ── private mapper ────────────────────────────────────────────────
+        private static ProductVariantDto MapToDto(ProductVariant v) => new()
+        {
+            Id           = v.Id,
+            ProductId    = v.ProductId,
+            Name         = v.Name,
+            SKU          = v.SKU,
+            Price        = v.Price,
+            SalePrice    = v.SalePrice,
+            Color        = v.Color,
+            Size         = v.Size,
+            Material     = v.Material,
+            ImageUrl     = v.ImageUrl,
+            IsActive     = v.IsActive,
+            DisplayOrder = v.DisplayOrder,
+            Stock        = v.Inventories?.Sum(i => i.AvailableQuantity) ?? 0
+        };
+
+
+
+
+
+
+
     }
 
 }

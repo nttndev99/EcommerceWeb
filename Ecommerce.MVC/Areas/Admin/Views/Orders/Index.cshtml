@@ -1,0 +1,222 @@
+@model Ecommerce.Application.Common.PagedResult<Ecommerce.Application.DTOs.Order.OrderListDto>
+@using Ecommerce.Application.DTOs.Order
+@using Ecommerce.Domain.Enums
+
+@{
+    ViewData["Title"] = "Orders";
+    var filter = ViewBag.Filter as OrderFilterParams ?? new OrderFilterParams();
+
+    bool IsNavActive(OrderStatus? s) =>
+        s.HasValue ? filter.OrderStatus == s : filter.OrderStatus == null;
+
+    Dictionary<string, string> PageRoute(int page) => new()
+    {
+        ["pageNumber"]    = page.ToString(),
+        ["pageSize"]      = filter.PageSize.ToString(),
+        ["search"]        = filter.Search        ?? "",
+        ["orderStatus"]   = filter.OrderStatus.HasValue  ? ((int)filter.OrderStatus.Value).ToString()  : "",
+        ["paymentStatus"] = filter.PaymentStatus.HasValue ? ((int)filter.PaymentStatus.Value).ToString() : "",
+        ["from"]          = filter.From?.ToString("yyyy-MM-dd") ?? "",
+        ["to"]            = filter.To?.ToString("yyyy-MM-dd")   ?? "",
+        ["sortDirection"] = filter.SortDirection ?? "desc",
+    };
+
+    string OrderStatusBadge(OrderStatus s) => s switch
+    {
+        OrderStatus.Pending    => "bg-warning text-dark",
+        OrderStatus.Processing => "bg-primary",
+        OrderStatus.Shipped    => "bg-info text-dark",
+        OrderStatus.Delivered  => "bg-success",
+        OrderStatus.Cancelled  => "bg-danger",
+        _                      => "bg-secondary",
+    };
+
+    string PaymentBadge(PaymentStatus s) => s switch
+    {
+        PaymentStatus.Paid     => "bg-success",
+        PaymentStatus.Unpaid   => "bg-warning text-dark",
+        PaymentStatus.Refunded => "bg-secondary",
+        PaymentStatus.Failed   => "bg-danger",
+        _                      => "bg-secondary",
+    };
+}
+
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-semibold mb-0">Orders</h4>
+            <small class="text-muted">Manage and track customer orders</small>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+
+        <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center gap-2 py-3">
+            <ul class="nav nav-pills me-auto gap-1">
+                @{
+                    (string label, OrderStatus? status, int count)[] tabs =
+                    {
+                        ("All",        null,                    (int)ViewBag.TotalAll),
+                        ("Pending",    OrderStatus.Pending,    (int)ViewBag.TotalPending),
+                        ("Processing", OrderStatus.Processing, (int)ViewBag.TotalProcessing),
+                        ("Shipped",    OrderStatus.Shipped,    (int)ViewBag.TotalShipped),
+                        ("Delivered",  OrderStatus.Delivered,  (int)ViewBag.TotalDelivered),
+                        ("Cancelled",  OrderStatus.Cancelled,  (int)ViewBag.TotalCancelled),
+                    };
+                }
+                @foreach (var (label, status, count) in tabs)
+                {
+                    bool active = IsNavActive(status);
+                    <li class="nav-item">
+                        <a asp-action="Index"
+                            asp-route-orderStatus="@(status.HasValue ? (int)status : "")"
+                            asp-route-pageSize="@filter.PageSize"
+                            asp-route-search="@filter.Search"
+                            class="nav-link px-3 py-1 @(active ? "active" : "text-muted")">
+                            @label
+                            <span class="badge @(active ? "bg-white text-dark" : "bg-dark") ms-1">@count</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+
+            <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+                <div class="input-group input-group-sm" style="width:220px">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" value="@filter.Search"
+                        class="form-control border-start-0 ps-0"
+                        placeholder="Order code, name, phone…" />
+                </div>
+
+                <select name="paymentStatus" class="form-select form-select-sm" style="width:140px"
+                        onchange="this.form.submit()">
+                    <option value="">All payments</option>
+                    @foreach (var ps in Enum.GetValues<PaymentStatus>())
+                    {
+                        <option value="@((int)ps)"
+                                selected="@(filter.PaymentStatus == ps ? "selected" : null)">
+                            @ps
+                        </option>
+                    }
+                </select>
+
+                <input type="date" name="from" value="@filter.From?.ToString("yyyy-MM-dd")"
+                        class="form-control form-control-sm" style="width:140px" />
+                <input type="date" name="to"   value="@filter.To?.ToString("yyyy-MM-dd")"
+                        class="form-control form-control-sm" style="width:140px" />
+
+                <select name="pageSize" class="form-select form-select-sm" style="width:110px"
+                        onchange="this.form.submit()">
+                    @foreach (var size in new[] { 10, 25, 50 })
+                    {
+                        <option value="@size" selected="@(filter.PageSize == size ? "selected" : null)">
+                            @size / page
+                        </option>
+                    }
+                </select>
+
+                <input type="hidden" name="orderStatus"   value="@(filter.OrderStatus.HasValue ? (int)filter.OrderStatus.Value : "")" />
+                <input type="hidden" name="sortDirection" value="@filter.SortDirection" />
+
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Apply</button>
+            </form>
+        </div>
+
+        @if (!Model.Items.Any())
+        {
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-bag-x display-4 d-block mb-2 opacity-25"></i>
+                <p class="mb-0">No orders found.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light text-uppercase" style="font-size:.7rem;letter-spacing:.05em">
+                        <tr>
+                            <th class="ps-4 py-3 border-0">Order</th>
+                            <th class="py-3 border-0">Customer</th>
+                            <th class="py-3 border-0">Items</th>
+                            <th class="py-3 border-0">Total</th>
+                            <th class="py-3 border-0">Payment</th>
+                            <th class="py-3 border-0">Status</th>
+                            <th class="py-3 border-0">Date</th>
+                            <th class="pe-4 py-3 border-0 text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var o in Model.Items)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="fw-semibold font-monospace small">@o.OrderCode</div>
+                                </td>
+                                <td>
+                                    <div class="fw-medium">@o.RecipientName</div>
+                                </td>
+                                <td class="text-muted">@o.ItemCount item(s)</td>
+                                <td class="fw-bold font-monospace">@o.Total.ToString("N0") ₫</td>
+                                <td>
+                                    <span class="badge @PaymentBadge(o.PaymentStatus) rounded-pill">
+                                        @o.PaymentStatus
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge @OrderStatusBadge(o.OrderStatus) rounded-pill">
+                                        @o.OrderStatus
+                                    </span>
+                                </td>
+                                <td class="text-muted text-nowrap">
+                                    @o.CreatedAt.ToString("dd MMM yyyy")
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <a asp-action="Detail" asp-route-id="@o.Id"
+                                        class="btn btn-light btn-sm" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer bg-white border-top d-flex align-items-center justify-content-between flex-wrap gap-2 py-3">
+                <small class="text-muted">
+                    Showing
+                    <strong>@(((Model.PageNumber - 1) * Model.PageSize) + 1)</strong>–<strong>@(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount))</strong>
+                    of <strong>@Model.TotalCount</strong> orders
+                </small>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 gap-1">
+                        <li class="page-item @(Model.PageNumber <= 1 ? "disabled" : "")">
+                            <a class="page-link rounded" asp-action="Index"
+                                asp-all-route-data="@PageRoute(Model.PageNumber - 1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        @for (int p = Math.Max(1, Model.PageNumber - 2); p <= Math.Min(Model.TotalPages, Model.PageNumber + 2); p++)
+                        {
+                            <li class="page-item @(p == Model.PageNumber ? "active" : "")">
+                                <a class="page-link rounded" asp-action="Index"
+                                asp-all-route-data="@PageRoute(p)">@p</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link rounded" asp-action="Index"
+                                asp-all-route-data="@PageRoute(Model.PageNumber + 1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_OrderToast")

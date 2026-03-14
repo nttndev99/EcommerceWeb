@@ -1,0 +1,87 @@
+@model Ecommerce.Application.DTOs.Product.ProductListDto
+
+@{
+    ViewData["Title"] = "Delete Permanently";
+}
+
+<div class="container-fluid px-4 py-5 d-flex justify-content-center">
+    <div style="width:100%;max-width:520px">
+
+        <div class="card border-0 shadow-sm">
+
+            <div class="card-header bg-danger bg-opacity-10 border-0 py-4 px-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-danger bg-opacity-10 border border-danger border-opacity-25
+                                d-flex align-items-center justify-content-center"
+                        style="width:46px;height:46px;flex-shrink:0">
+                        <i class="bi bi-x-circle text-danger fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-semibold mb-0 text-danger">Delete Permanently</h5>
+                        <small class="text-muted">This action cannot be undone.</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body px-4 py-4">
+
+                <div class="mb-3 rounded-3 bg-light p-3 small">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Name</span>
+                        <span class="fw-semibold">@Model.Name</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">CategoryName</span>
+                        <span class="font-monospace">@Model.CategoryName</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">SKU</span>
+                        <span class="font-monospace">@Model.SKU</span>
+                    </div>
+                </div>
+
+                <div class="alert alert-danger d-flex gap-2 align-items-start py-2 small" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill mt-1 flex-shrink-0"></i>
+                    <span>
+                        <strong>Warning:</strong> This will permanently remove the product from the database.
+                        All associated data will be lost and <strong>cannot be recovered</strong>.
+                    </span>
+                </div>
+
+                <div class="mb-1">
+                    <label class="form-label fw-medium small">
+                        Type the product name to confirm
+                    </label>
+                    <input type="text" id="confirmInput" class="form-control"
+                        placeholder="@Model.Name" autocomplete="off" />
+                    <div class="form-text">
+                        Type exactly: <strong>@Model.Name</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer bg-white border-top d-flex justify-content-end gap-2 py-3 px-4">
+                <a asp-action="Trash" class="btn btn-outline-secondary">Cancel</a>
+                <form asp-action="HardDelete" asp-route-id="@Model.Id" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-danger" id="deleteBtn" disabled>
+                        <i class="bi bi-trash me-1"></i> Delete Forever
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const input    = document.getElementById('confirmInput');
+        const btn      = document.getElementById('deleteBtn');
+        const expected = '@Html.Raw(Model.Name.Replace("'", "\\'"))';
+
+        input.addEventListener('input', () => {
+            btn.disabled = input.value.trim() !== expected;
+        });
+    </script>
+}

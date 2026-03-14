@@ -38,6 +38,7 @@ public class ProductListDto
     public decimal BasePrice { get; set; }
     public decimal? SalePrice { get; set; }
     public string? SKU { get; set; }
+    public int VariantCount { get; set; }
     public ProductStatus Status { get; set; }
     public bool IsFeatured { get; set; }
     public string CategoryName { get; set; } = string.Empty;
