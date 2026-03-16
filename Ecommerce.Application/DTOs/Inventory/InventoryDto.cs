@@ -1,47 +1,75 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 using Ecommerce.Application.Common;
 
-namespace Ecommerce.Application.DTOs.Inventory
+namespace Ecommerce.Application.DTOs.Inventory;
+
+public class InventoryDto
 {
-    // ===== Inventory =====
-    public class InventoryDto
-    {
-        public int Id { get; set; }
-        public int ProductId { get; set; }
-        public string ProductName { get; set; } = string.Empty;
-        public int? ProductVariantId { get; set; }
-        public string? VariantName { get; set; }
-        public int Quantity { get; set; }
-        public int ReservedQuantity { get; set; }
-        public int AvailableQuantity { get; set; }
-        public int LowStockThreshold { get; set; }
-        public string? WarehouseLocation { get; set; }
-        public bool IsLowStock { get; set; }
-        public bool IsOutOfStock { get; set; }
-        public DateTime LastStockUpdate { get; set; }
-    }
+    public int      Id                { get; set; }
+    public int      ProductId         { get; set; }
+    public string   ProductName       { get; set; } = string.Empty;
+    public int?     ProductVariantId  { get; set; }
+    public string?  VariantName       { get; set; }
+    public int      Quantity          { get; set; }
+    public int      ReservedQuantity  { get; set; }
+    public int      AvailableQuantity { get; set; }
+    public int      LowStockThreshold { get; set; }
+    public string?  WarehouseLocation { get; set; }
+    public bool     IsLowStock        { get; set; }
+    public bool     IsOutOfStock      { get; set; }
+    public DateTime LastStockUpdate   { get; set; }
+}
 
-    public class UpdateInventoryDto
-    {
-        public int Id { get; set; }
-        public int Quantity { get; set; }
-        public int ReservedQuantity { get; set; }
-        public int LowStockThreshold { get; set; }
-        public string? WarehouseLocation { get; set; }
-    }
+// UPDATE
+public class UpdateInventoryDto
+{
+    [Required]
+    public int Id { get; set; }
 
-    public class InventoryFilterParams : PaginationParams
-    {
-        public string? Search { get; set; }
-        public int? CategoryId { get; set; }
-        public bool? IsLowStock { get; set; }
-        public bool? IsOutOfStock { get; set; }
-        public string SortBy { get; set; } = "ProductName";
-        public string SortDirection { get; set; } = "asc";
-    }
+    [Range(0, int.MaxValue, ErrorMessage = "Quantity cannot be negative.")]
+    public int Quantity { get; set; }
 
+    [Range(0, int.MaxValue, ErrorMessage = "Reserved quantity cannot be negative.")]
+    public int ReservedQuantity { get; set; }
 
+    [Range(0, int.MaxValue, ErrorMessage = "Low stock threshold cannot be negative.")]
+    public int LowStockThreshold { get; set; }
+
+    [MaxLength(100, ErrorMessage = "Warehouse location must be at most 100 characters.")]
+    public string? WarehouseLocation { get; set; }
+}
+
+// ADJUST
+public class AdjustInventoryDto
+{
+    [Required]
+    public int Id { get; set; }
+
+    [Required(ErrorMessage = "Adjustment quantity is required.")]
+    [Range(0, int.MaxValue, ErrorMessage = "Adjustment quantity cannot be negative.")]
+    public int AdjustmentQuantity { get; set; }
+
+    [Required(ErrorMessage = "Reason is required.")]
+    [MaxLength(500, ErrorMessage = "Reason must be at most 500 characters.")]
+    public string Reason { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Adjustment type is required.")]
+    [RegularExpression("^(add|subtract|set)$",
+        ErrorMessage = "Adjustment type must be 'add', 'subtract', or 'set'.")]
+    public string AdjustmentType { get; set; } = "add";
+
+    [MaxLength(1000)]
+    public string? Note { get; set; }
+}
+
+// FILTER
+public class InventoryFilterParams : PaginationParams
+{
+    [MaxLength(100)]
+    public string? Search       { get; set; }
+    public int?    CategoryId   { get; set; }
+    public bool?   IsLowStock   { get; set; }
+    public bool?   IsOutOfStock { get; set; }
+    public string  SortBy        { get; set; } = "ProductName";
+    public string  SortDirection { get; set; } = "asc";
 }

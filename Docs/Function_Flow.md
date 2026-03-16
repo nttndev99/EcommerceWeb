@@ -39,4 +39,4 @@ MVC:
     Filters: ActionFilter (common)
 
 # Auth + Email(Identity) + Roles-User(ADMIN) -------
-Identitiy(Serice) + Auth(Service) + Email(Service) + RolesManager(Service) + ManagerUser(Service)
+Identitiy(Serice) + Auth(Service-ConfigureApplicationCookie(login) ) + Email(Service) + RolesManager(Service) + ManagerUser(Service)

@@ -1,66 +1,81 @@
+using System.ComponentModel.DataAnnotations;
 using Ecommerce.Application.Common;
 
 namespace Ecommerce.Application.DTOs.Customer;
 
-// ─────────────────────────────────────────────
-// READ
-// ─────────────────────────────────────────────
 public class CustomerDto
 {
-    public string   Id           { get; set; } = string.Empty;
-    public string   FullName     { get; set; } = string.Empty;
-    public string   Email        { get; set; } = string.Empty;
-    public string?  PhoneNumber  { get; set; }
-    public string?  AvatarUrl    { get; set; }
-    public string?  Gender       { get; set; }
+    public string    Id          { get; set; } = string.Empty;
+    public string    FullName    { get; set; } = string.Empty;
+    public string    Email       { get; set; } = string.Empty;
+    public string?   PhoneNumber { get; set; }
+    public string?   AvatarUrl   { get; set; }
+    public string?   Gender      { get; set; }
     public DateTime? DateOfBirth { get; set; }
-    public string?  AddressLine  { get; set; }
-    public string?  Ward         { get; set; }
-    public string?  District     { get; set; }
-    public string?  Province     { get; set; }
-    public bool     IsActive     { get; set; }
-    public DateTime CreatedAt    { get; set; }
+    public string?   AddressLine { get; set; }
+    public string?   Ward        { get; set; }
+    public string?   District    { get; set; }
+    public string?   Province    { get; set; }
+    public bool      IsActive    { get; set; }
+    public DateTime  CreatedAt   { get; set; }
     public DateTime? LastLoginAt { get; set; }
-    public int      TotalOrders  { get; set; }
-    public decimal  TotalSpent   { get; set; }
+    public int       TotalOrders { get; set; }
+    public decimal   TotalSpent  { get; set; }
 }
 
 public class CustomerListDto
 {
-    public string   Id          { get; set; } = string.Empty;
-    public string   FullName    { get; set; } = string.Empty;
-    public string   Email       { get; set; } = string.Empty;
-    public string?  PhoneNumber { get; set; }
-    public string?  AvatarUrl   { get; set; }
-    public bool     IsActive    { get; set; }
-    public DateTime CreatedAt   { get; set; }
+    public string    Id          { get; set; } = string.Empty;
+    public string    FullName    { get; set; } = string.Empty;
+    public string    Email       { get; set; } = string.Empty;
+    public string?   PhoneNumber { get; set; }
+    public string?   AvatarUrl   { get; set; }
+    public bool      IsActive    { get; set; }
+    public DateTime  CreatedAt   { get; set; }
     public DateTime? LastLoginAt { get; set; }
-    public int      TotalOrders { get; set; }
-    public decimal  TotalSpent  { get; set; }
+    public int       TotalOrders { get; set; }
+    public decimal   TotalSpent  { get; set; }
 }
 
-// ─────────────────────────────────────────────
-// UPDATE (Admin edit customer)
-// ─────────────────────────────────────────────
+// UPDATE
 public class UpdateCustomerDto
 {
-    public string   Id          { get; set; } = string.Empty;
-    public string   FullName    { get; set; } = string.Empty;
-    public string?  PhoneNumber { get; set; }
-    public string?  Gender      { get; set; }
+    [Required]
+    public string Id { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Full name is required.")]
+    [MaxLength(100, ErrorMessage = "Full name must be at most 100 characters.")]
+    public string FullName { get; set; } = string.Empty;
+
+    [Phone(ErrorMessage = "Invalid phone number format.")]
+    [MaxLength(20)]
+    public string? PhoneNumber { get; set; }
+
+    [MaxLength(10)]
+    public string? Gender { get; set; }
+
+    [DataType(DataType.Date)]
     public DateTime? DateOfBirth { get; set; }
-    public string?  AddressLine { get; set; }
-    public string?  Ward        { get; set; }
-    public string?  District    { get; set; }
-    public string?  Province    { get; set; }
-    public bool     IsActive    { get; set; }
+
+    [MaxLength(255)]
+    public string? AddressLine { get; set; }
+
+    [MaxLength(100)]
+    public string? Ward { get; set; }
+
+    [MaxLength(100)]
+    public string? District { get; set; }
+
+    [MaxLength(100)]
+    public string? Province { get; set; }
+
+    public bool IsActive { get; set; }
 }
 
-// ─────────────────────────────────────────────
 // FILTER
-// ─────────────────────────────────────────────
 public class CustomerFilterParams : PaginationParams
 {
+    [MaxLength(100)]
     public string? Search        { get; set; }
     public bool?   IsActive      { get; set; }
     public string  SortBy        { get; set; } = "createdAt";
