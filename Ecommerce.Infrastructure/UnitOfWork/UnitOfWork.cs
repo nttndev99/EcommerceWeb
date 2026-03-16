@@ -19,6 +19,7 @@ public class UnitOfWork : IUnitOfWork
     private IProductImageRepository? _productImages;
     private IInventoryRepository? _inventories;
     private IOrderRepository? _orders;
+    private ICustomerRepository? _customers;
     public UnitOfWork(EcommerceDbContext context) => _context = context;
 
     public ICategoryRepository Categories
@@ -39,7 +40,8 @@ public class UnitOfWork : IUnitOfWork
         => _orders ??= new OrderRepository(_context);
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
         => await _context.SaveChangesAsync(ct);
-
+    public ICustomerRepository Customers
+        => _customers ??= new CustomerRepository(_context);
     public async Task BeginTransactionAsync(CancellationToken ct = default)
         => _transaction = await _context.Database.BeginTransactionAsync(ct);
 

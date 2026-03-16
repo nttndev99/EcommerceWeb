@@ -1,228 +1,269 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Ecommerce.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Ecommerce.Domain.Entities;
 
-namespace Ecommerce.Infrastructure.Persistence
+namespace Ecommerce.Infrastructure.Persistence.Configurations;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CATEGORY
+// ─────────────────────────────────────────────────────────────────────────────
+public class CategoryConfiguration : IEntityTypeConfiguration<Category>
 {
-    public class CategoryConfiguration : IEntityTypeConfiguration<Category>
+    public void Configure(EntityTypeBuilder<Category> b)
     {
-        public void Configure(EntityTypeBuilder<Category> builder)
-        {
-            builder.ToTable("Categories");
-            builder.HasKey(c => c.Id);
-            builder.Property(c => c.Name).IsRequired().HasMaxLength(200);
-            builder.Property(c => c.Slug).IsRequired().HasMaxLength(200);
-            builder.HasIndex(c => c.Slug).IsUnique();
-            builder.Property(c => c.Description).HasMaxLength(2000);
-            builder.Property(c => c.ImageUrl).HasMaxLength(500);
+        b.ToTable("Categories");
+        b.HasKey(x => x.Id);
 
-            builder.HasOne(c => c.Parent)
-                .WithMany(c => c.Children)
-                .HasForeignKey(c => c.ParentId)
-                .OnDelete(DeleteBehavior.Restrict);
+        b.Property(x => x.Name).IsRequired().HasMaxLength(100);
+        b.Property(x => x.Slug).IsRequired().HasMaxLength(120);
+        b.Property(x => x.Description).HasMaxLength(500);
+        b.Property(x => x.ImageUrl).HasMaxLength(500);
 
-            builder.HasQueryFilter(c => !c.IsDeleted);
-        }
+        b.HasIndex(x => x.Slug).IsUnique();
+
+        // Global query filter — soft delete
+        b.HasQueryFilter(x => !x.IsDeleted);
+
+        // Self-referencing: Category → Parent
+        b.HasOne(x => x.Parent)
+            .WithMany(x => x.Children)
+            .HasForeignKey(x => x.ParentId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
     }
+}
 
-    public class ProductConfiguration : IEntityTypeConfiguration<Product>
+// ─────────────────────────────────────────────────────────────────────────────
+// PRODUCT
+// ─────────────────────────────────────────────────────────────────────────────
+public class ProductConfiguration : IEntityTypeConfiguration<Product>
+{
+    public void Configure(EntityTypeBuilder<Product> b)
     {
-        public void Configure(EntityTypeBuilder<Product> builder)
-        {
-            builder.ToTable("Products");
-            builder.HasKey(p => p.Id);
-            builder.Property(p => p.Name).IsRequired().HasMaxLength(300);
-            builder.Property(p => p.Slug).IsRequired().HasMaxLength(300);
-            builder.HasIndex(p => p.Slug).IsUnique();
-            builder.Property(p => p.BasePrice).HasColumnType("decimal(18,2)");
-            builder.Property(p => p.SalePrice).HasColumnType("decimal(18,2)");
-            builder.Property(p => p.Weight).HasColumnType("decimal(10,3)");
-            builder.Property(p => p.SKU).HasMaxLength(100);
-            builder.Property(p => p.Brand).HasMaxLength(200);
-            builder.Property(p => p.Tags).HasMaxLength(500);
+        b.ToTable("Products");
+        b.HasKey(x => x.Id);
 
-            builder.HasOne(p => p.Category)
-                .WithMany(c => c.Products)
-                .HasForeignKey(p => p.CategoryId)
-                .OnDelete(DeleteBehavior.Restrict);
+        b.Property(x => x.Name).IsRequired().HasMaxLength(255);
+        b.Property(x => x.Slug).IsRequired().HasMaxLength(300);
+        b.Property(x => x.Description).HasMaxLength(4000);
+        b.Property(x => x.ShortDescription).HasMaxLength(500);
+        b.Property(x => x.SKU).HasMaxLength(100);
+        b.Property(x => x.Brand).HasMaxLength(100);
+        b.Property(x => x.Tags).HasMaxLength(500);
 
-            // Index for performance
-            builder.HasIndex(p => p.CategoryId);
-            builder.HasIndex(p => p.Status);
-            builder.HasIndex(p => p.CreatedAt);
-            builder.HasIndex(p => new { p.CategoryId, p.Status });
+        b.Property(x => x.BasePrice).HasPrecision(18, 2);
+        b.Property(x => x.SalePrice).HasPrecision(18, 2);
+        b.Property(x => x.Weight).HasPrecision(10, 3);
 
-            builder.HasQueryFilter(p => !p.IsDeleted);
-        }
+        b.HasIndex(x => x.Slug).IsUnique();
+        b.HasIndex(x => x.SKU).IsUnique().HasFilter("[SKU] IS NOT NULL");
+
+        b.HasQueryFilter(x => !x.IsDeleted);
+
+        // Product → Category
+        b.HasOne(x => x.Category)
+            .WithMany(x => x.Products)
+            .HasForeignKey(x => x.CategoryId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Product → Variants (cascade)
+        b.HasMany(x => x.Variants)
+            .WithOne(x => x.Product)
+            .HasForeignKey(x => x.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Product → Images (cascade)
+        b.HasMany(x => x.Images)
+            .WithOne(x => x.Product)
+            .HasForeignKey(x => x.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Product → Inventories (cascade)
+        b.HasMany(x => x.Inventories)
+            .WithOne(x => x.Product)
+            .HasForeignKey(x => x.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
+}
 
-    public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVariant>
+// ─────────────────────────────────────────────────────────────────────────────
+// PRODUCT VARIANT
+// ─────────────────────────────────────────────────────────────────────────────
+public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVariant>
+{
+    public void Configure(EntityTypeBuilder<ProductVariant> b)
     {
-        public void Configure(EntityTypeBuilder<ProductVariant> builder)
-        {
-            builder.ToTable("ProductVariants");
-            builder.HasKey(v => v.Id);
-            builder.Property(v => v.Name).IsRequired().HasMaxLength(200);
-            builder.Property(v => v.SKU).HasMaxLength(100);
-            builder.HasIndex(v => v.SKU).IsUnique().HasFilter("[SKU] IS NOT NULL");
-            builder.Property(v => v.Price).HasColumnType("decimal(18,2)");
-            builder.Property(v => v.SalePrice).HasColumnType("decimal(18,2)");
-            builder.Property(v => v.Color).HasMaxLength(100);
-            builder.Property(v => v.Size).HasMaxLength(50);
-            builder.Property(v => v.Material).HasMaxLength(200);
-            builder.Property(v => v.ImageUrl).HasMaxLength(500);
+        b.ToTable("ProductVariants");
+        b.HasKey(x => x.Id);
 
-            builder.HasOne(v => v.Product)
-                .WithMany(p => p.Variants)
-                .HasForeignKey(v => v.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.Name).IsRequired().HasMaxLength(200);
+        b.Property(x => x.SKU).HasMaxLength(100);
+        b.Property(x => x.Color).HasMaxLength(50);
+        b.Property(x => x.Size).HasMaxLength(50);
+        b.Property(x => x.Material).HasMaxLength(100);
+        b.Property(x => x.ImageUrl).HasMaxLength(500);
 
-            builder.HasIndex(v => v.ProductId);
-            builder.HasQueryFilter(v => !v.IsDeleted);
-        }
+        b.Property(x => x.Price).HasPrecision(18, 2);
+        b.Property(x => x.SalePrice).HasPrecision(18, 2);
+
+        b.HasIndex(x => x.SKU).IsUnique().HasFilter("[SKU] IS NOT NULL");
+
+        b.HasQueryFilter(x => !x.IsDeleted);
+
+        // Variant → Inventories (cascade)
+        b.HasMany(x => x.Inventories)
+            .WithOne(x => x.ProductVariant)
+            .HasForeignKey(x => x.ProductVariantId)
+            .OnDelete(DeleteBehavior.ClientSetNull)
+            .IsRequired(false);
     }
+}
 
-    public class ProductImageConfiguration : IEntityTypeConfiguration<ProductImage>
+// ─────────────────────────────────────────────────────────────────────────────
+// PRODUCT IMAGE
+// ─────────────────────────────────────────────────────────────────────────────
+public class ProductImageConfiguration : IEntityTypeConfiguration<ProductImage>
+{
+    public void Configure(EntityTypeBuilder<ProductImage> b)
     {
-        public void Configure(EntityTypeBuilder<ProductImage> builder)
-        {
-            builder.ToTable("ProductImages");
-            builder.HasKey(i => i.Id);
-            builder.Property(i => i.ImageUrl).IsRequired().HasMaxLength(500);
-            builder.Property(i => i.AltText).HasMaxLength(300);
+        b.ToTable("ProductImages");
+        b.HasKey(x => x.Id);
 
-            builder.HasOne(i => i.Product)
-                .WithMany(p => p.Images)
-                .HasForeignKey(i => i.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            builder.HasIndex(i => i.ProductId);
-            builder.HasQueryFilter(i => !i.IsDeleted);
-        }
+        b.Property(x => x.ImageUrl).IsRequired().HasMaxLength(500);
+        b.Property(x => x.AltText).HasMaxLength(200);
     }
+}
 
-    public class InventoryConfiguration : IEntityTypeConfiguration<Inventory>
+// ─────────────────────────────────────────────────────────────────────────────
+// INVENTORY
+// ─────────────────────────────────────────────────────────────────────────────
+public class InventoryConfiguration : IEntityTypeConfiguration<Inventory>
+{
+    public void Configure(EntityTypeBuilder<Inventory> b)
     {
-        public void Configure(EntityTypeBuilder<Inventory> builder)
-        {
-            builder.ToTable("Inventories");
-            builder.HasKey(i => i.Id);
-            builder.Property(i => i.WarehouseLocation).HasMaxLength(200);
+        b.ToTable("Inventories");
+        b.HasKey(x => x.Id);
 
-            builder.HasOne(i => i.Product)
-                .WithMany(p => p.Inventories)
-                .HasForeignKey(i => i.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
+        b.Property(x => x.WarehouseLocation).HasMaxLength(100);
 
-            builder.HasOne(i => i.ProductVariant)
-                .WithMany(v => v.Inventories)
-                .HasForeignKey(i => i.ProductVariantId)
-                .OnDelete(DeleteBehavior.Restrict);
+        // Ignore computed properties
+        b.Ignore(x => x.AvailableQuantity);
+        b.Ignore(x => x.IsLowStock);
+        b.Ignore(x => x.IsOutOfStock);
 
-            builder.HasIndex(i => i.ProductId);
-            builder.HasIndex(i => new { i.ProductId, i.ProductVariantId }).IsUnique();
+        // Unique: 1 inventory record per (Product, Variant)
+        b.HasIndex(x => new { x.ProductId, x.ProductVariantId }).IsUnique();
 
-            // Ignore computed properties
-            builder.Ignore(i => i.AvailableQuantity);
-            builder.Ignore(i => i.IsLowStock);
-            builder.Ignore(i => i.IsOutOfStock);
+        // Inventory → Product (no cascade — product already cascades)
+        b.HasOne(x => x.Product)
+            .WithMany(x => x.Inventories)
+            .HasForeignKey(x => x.ProductId)
+            .OnDelete(DeleteBehavior.NoAction);
 
-            builder.HasQueryFilter(i => !i.IsDeleted);
-        }
+        // Inventory → ProductVariant (optional)
+        b.HasOne(x => x.ProductVariant)
+            .WithMany(x => x.Inventories)
+            .HasForeignKey(x => x.ProductVariantId)
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired(false);
     }
+}
 
-    public class OrderConfiguration : IEntityTypeConfiguration<Order>
+// ─────────────────────────────────────────────────────────────────────────────
+// ORDER
+// ─────────────────────────────────────────────────────────────────────────────
+public class OrderConfiguration : IEntityTypeConfiguration<Order>
+{
+    public void Configure(EntityTypeBuilder<Order> b)
     {
-        public void Configure(EntityTypeBuilder<Order> builder)
-        {
-            builder.ToTable("Orders");
-    
-            builder.HasKey(o => o.Id);
-    
-            builder.Property(o => o.OrderCode)
-                .IsRequired()
-                .HasMaxLength(30);
-    
-            builder.HasIndex(o => o.OrderCode)
-                .IsUnique();
-    
-            builder.Property(o => o.UserId)
-                .IsRequired()
-                .HasMaxLength(450);
-    
-            // ── Decimal precision ──────────────────────
-            builder.Property(o => o.SubTotal)
-                .HasPrecision(18, 2);
-    
-            builder.Property(o => o.ShippingFee)
-                .HasPrecision(18, 2);
-    
-            builder.Property(o => o.DiscountAmount)
-                .HasPrecision(18, 2);
-    
-            builder.Property(o => o.Total)
-                .HasPrecision(18, 2);
-    
-            // ── String lengths ─────────────────────────
-            builder.Property(o => o.RecipientName).HasMaxLength(100);
-            builder.Property(o => o.RecipientPhone).HasMaxLength(20);
-            builder.Property(o => o.AddressLine).HasMaxLength(255);
-            builder.Property(o => o.Ward).HasMaxLength(100);
-            builder.Property(o => o.District).HasMaxLength(100);
-            builder.Property(o => o.Province).HasMaxLength(100);
-            builder.Property(o => o.CouponCode).HasMaxLength(50);
-            builder.Property(o => o.CancelReason).HasMaxLength(500);
-            builder.Property(o => o.Note).HasMaxLength(1000);
-    
-            // ── Navigation ─────────────────────────────
-            builder.HasMany(o => o.Items)
-                .WithOne(i => i.Order)
-                .HasForeignKey(i => i.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
-        }
+        b.ToTable("Orders");
+        b.HasKey(x => x.Id);
+
+        b.Property(x => x.OrderCode).IsRequired().HasMaxLength(30);
+        b.Property(x => x.UserId).IsRequired().HasMaxLength(450);
+
+        b.Property(x => x.RecipientName).HasMaxLength(100);
+        b.Property(x => x.RecipientPhone).HasMaxLength(20);
+        b.Property(x => x.AddressLine).HasMaxLength(255);
+        b.Property(x => x.Ward).HasMaxLength(100);
+        b.Property(x => x.District).HasMaxLength(100);
+        b.Property(x => x.Province).HasMaxLength(100);
+        b.Property(x => x.CouponCode).HasMaxLength(50);
+        b.Property(x => x.CancelReason).HasMaxLength(500);
+        b.Property(x => x.Note).HasMaxLength(1000);
+
+        b.Property(x => x.SubTotal).HasPrecision(18, 2);
+        b.Property(x => x.ShippingFee).HasPrecision(18, 2);
+        b.Property(x => x.DiscountAmount).HasPrecision(18, 2);
+        b.Property(x => x.Total).HasPrecision(18, 2);
+
+        b.HasIndex(x => x.OrderCode).IsUnique();
+        b.HasIndex(x => x.UserId);
+
+        // Order → Items (cascade)
+        b.HasMany(x => x.Items)
+            .WithOne(x => x.Order)
+            .HasForeignKey(x => x.OrderId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
-    
-    public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ORDER ITEM
+// ─────────────────────────────────────────────────────────────────────────────
+public class OrderItemConfiguration : IEntityTypeConfiguration<OrderItem>
+{
+    public void Configure(EntityTypeBuilder<OrderItem> b)
     {
-        public void Configure(EntityTypeBuilder<OrderItem> builder)
-        {
-            builder.ToTable("OrderItems");
-    
-            builder.HasKey(i => i.Id);
-    
-            // ── Decimal precision ──────────────────────
-            builder.Property(i => i.UnitPrice)
-                .HasPrecision(18, 2);
-    
-            // TotalPrice là computed property — ignore
-            builder.Ignore(i => i.TotalPrice);
-    
-            // ── String lengths ─────────────────────────
-            builder.Property(i => i.ProductName).HasMaxLength(255);
-            builder.Property(i => i.VariantName).HasMaxLength(100);
-            builder.Property(i => i.SKU).HasMaxLength(100);
-            builder.Property(i => i.ImageUrl).HasMaxLength(500);
-    
-            // ── Fix: global query filter warning ──────
-            // Product có global filter (IsDeleted), cần configure navigation optional
-            // hoặc dùng NoAction để tránh conflict với soft-delete filter
-            builder.HasOne(i => i.Product)
-                .WithMany()
-                .HasForeignKey(i => i.ProductId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired(false);   // ← optional navigation = suppress EF warning 10622
-    
-            builder.HasOne(i => i.ProductVariant)
-                .WithMany()
-                .HasForeignKey(i => i.ProductVariantId)
-                .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired(false);
-        }
-    }    
+        b.ToTable("OrderItems");
+        b.HasKey(x => x.Id);
 
+        b.Property(x => x.ProductName).IsRequired().HasMaxLength(255);
+        b.Property(x => x.VariantName).HasMaxLength(100);
+        b.Property(x => x.SKU).HasMaxLength(100);
+        b.Property(x => x.ImageUrl).HasMaxLength(500);
 
+        b.Property(x => x.UnitPrice).HasPrecision(18, 2);
+
+        // TotalPrice is computed — ignore
+        b.Ignore(x => x.TotalPrice);
+
+        // Fix: Product has global query filter → make navigation optional
+        // to suppress EF warning 10622
+        b.HasOne(x => x.Product)
+            .WithMany()
+            .HasForeignKey(x => x.ProductId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+
+        b.HasOne(x => x.ProductVariant)
+            .WithMany()
+            .HasForeignKey(x => x.ProductVariantId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// APP USER
+// ─────────────────────────────────────────────────────────────────────────────
+public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
+{
+    public void Configure(EntityTypeBuilder<AppUser> b)
+    {
+        b.Property(x => x.FullName).IsRequired().HasMaxLength(100);
+        b.Property(x => x.AvatarUrl).HasMaxLength(500);
+        b.Property(x => x.Gender).HasMaxLength(10);
+        b.Property(x => x.AddressLine).HasMaxLength(255);
+        b.Property(x => x.Ward).HasMaxLength(100);
+        b.Property(x => x.District).HasMaxLength(100);
+        b.Property(x => x.Province).HasMaxLength(100);
+
+        // AppUser → Orders
+        b.HasMany(x => x.Orders)
+            .WithOne()
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
+    }
 }

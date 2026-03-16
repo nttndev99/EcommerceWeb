@@ -1,0 +1,264 @@
+@model Ecommerce.Application.DTOs.Admin.AdminUserDto
+
+@{
+    ViewData["Title"] = Model.FullName;
+    var allRoles = ViewBag.AllRoles as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var unassignedRoles = allRoles.Except(Model.Roles).ToList();
+}
+
+
+<div class="container-xxl py-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small mb-0">
+            <li class="breadcrumb-item">
+                <a asp-action="Index" class="text-decoration-none text-muted">Users</a>
+            </li>
+            <li class="breadcrumb-item active fw-semibold">@Model.FullName</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+        <div class="d-flex align-items-center gap-3">
+            @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+            {
+                <img src="@Model.AvatarUrl" width="64" height="64"
+                     class="rounded-circle border object-fit-cover flex-shrink-0" />
+            }
+            else
+            {
+                <div class="rounded-circle border bg-light d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:64px;height:64px">
+                    <i class="bi bi-person-fill text-secondary fs-3"></i>
+                </div>
+            }
+            <div>
+                <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                    <h1 class="h4 fw-bold mb-0">@Model.FullName</h1>
+                    @if (Model.IsLockedOut)
+                    {
+                        <span class="badge bg-danger rounded-pill">Locked</span>
+                    }
+                    else if (!Model.IsActive)
+                    {
+                        <span class="badge bg-secondary rounded-pill">Inactive</span>
+                    }
+                    else if (!Model.EmailConfirmed)
+                    {
+                        <span class="badge bg-warning text-dark rounded-pill">Unverified</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-success rounded-pill">Active</span>
+                    }
+                </div>
+                <div class="small text-muted">
+                    <i class="bi bi-envelope me-1"></i>@Model.Email
+                    @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                    {
+                        <span class="ms-3"><i class="bi bi-telephone me-1"></i>@Model.PhoneNumber</span>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-dark">
+                <i class="bi bi-pencil me-1"></i>Edit
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4 align-items-start">
+
+        <div class="col-lg-8 d-flex flex-column gap-4">
+
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+                    <span class="text-muted fw-bold text-uppercase small">
+                        <i class="bi bi-shield me-1"></i>Assigned Roles
+                    </span>
+                    @if (unassignedRoles.Any())
+                    {
+                        <button class="btn btn-dark btn-sm"
+                                data-bs-toggle="modal" data-bs-target="#assignRoleModal">
+                            <i class="bi bi-plus me-1"></i>Assign Role
+                        </button>
+                    }
+                </div>
+                <div class="card-body px-4 py-3">
+                    @if (!Model.Roles.Any())
+                    {
+                        <p class="text-muted small mb-0">No roles assigned.</p>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var role in Model.Roles)
+                            {
+                                <div class="d-flex align-items-center gap-1 border rounded-pill px-3 py-1">
+                                    <i class="bi bi-shield-fill text-primary" style="font-size:.8rem"></i>
+                                    <span class="fw-medium small">@role</span>
+                                    <form asp-controller="RolesManager" asp-action="RemoveRole" method="post" class="d-inline ms-1">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="UserId"   value="@Model.Id" />
+                                        <input type="hidden" name="RoleName" value="@role" />
+                                        <input type="hidden" name="returnId" value="@Model.Id" />
+                                        <button type="submit" class="btn btn-link p-0 text-danger"
+                                                style="font-size:.75rem; line-height:1"
+                                                onclick="return confirm('Remove role @role?')"
+                                                title="Remove">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-4 d-flex flex-column gap-4">
+
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4">
+                    <span class="text-muted fw-bold text-uppercase small">
+                        <i class="bi bi-info-circle me-1"></i>Account Info
+                    </span>
+                </div>
+                <div class="card-body px-4 py-2">
+                    @{
+                        void Row(string key, string? val)
+                        {
+                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <span class="small text-muted">@key</span>
+                                <span class="small fw-semibold text-end ms-3">@(val ?? "—")</span>
+                            </div>
+                        }
+                    }
+                    @{ Row("Joined",      Model.CreatedAt.ToString("dd MMM yyyy")); }
+                    @{ Row("Last Login",  Model.LastLoginAt.HasValue ? Model.LastLoginAt.Value.ToString("dd MMM yyyy HH:mm") : "Never"); }
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <span class="small text-muted">Email</span>
+                        <span class="small">
+                            @if (Model.EmailConfirmed)
+                            {
+                                <span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>Verified</span>
+                            }
+                            else
+                            {
+                                <span class="text-warning fw-semibold"><i class="bi bi-exclamation-circle me-1"></i>Unverified</span>
+                            }
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4">
+                    <span class="text-muted fw-bold text-uppercase small">
+                        <i class="bi bi-lightning me-1"></i>Actions
+                    </span>
+                </div>
+
+
+                @if (Model.Email != "admin@ecommerce.com")
+                {
+                <div class="card-body px-4 py-3 d-grid gap-2">
+
+
+                    <a asp-action="Edit" asp-route-id="@Model.Id"
+                        class="btn btn-dark btn-sm d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-pencil-square"></i>Edit User
+                    </a>
+                    <a asp-action="ResetPassword" asp-route-id="@Model.Id"
+                        class="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-key"></i>Reset Password
+                    </a>
+                    <hr class="my-1" />
+                    @if (Model.IsLockedOut)
+                    {
+                        <form asp-action="Unlock" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button type="submit" class="btn btn-outline-success btn-sm w-100 d-flex align-items-center justify-content-center gap-2">
+                                <i class="bi bi-unlock"></i>Unlock Account
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form asp-action="Lock" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <button type="submit" class="btn btn-outline-warning btn-sm w-100 d-flex align-items-center justify-content-center gap-2"
+                                    onclick="return confirm('Lock this user account?')">
+                                <i class="bi bi-lock"></i>Lock Account
+                            </button>
+                        </form>
+                    }
+                    <form asp-action="Delete" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <button type="submit" class="btn btn-outline-danger btn-sm w-100 d-flex align-items-center justify-content-center gap-2"
+                                onclick="return confirm('Permanently delete @Model.FullName? This cannot be undone.')">
+                            <i class="bi bi-trash3"></i>Delete User
+                        </button>
+                    </form>
+                </div>
+                }
+                else
+                {
+                    <div class="alert alert-secondary small py-2">
+                        <i class="bi bi-shield-lock me-1"></i>
+                        System Admin — actions restricted.
+                    </div>
+                }
+
+
+
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@if (unassignedRoles.Any())
+{
+    <div class="modal fade" id="assignRoleModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-bottom">
+                    <h6 class="modal-title fw-semibold">Assign Role</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-controller="RolesManager" asp-action="AssignRole" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="UserId"   value="@Model.Id" />
+                    <input type="hidden" name="returnId" value="@Model.Id" />
+                    <div class="modal-body">
+                        <label class="form-label fw-medium small">Select Role</label>
+                        <select name="RoleName" class="form-select">
+                            @foreach (var r in unassignedRoles)
+                            {
+                                <option value="@r">@r</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="modal-footer border-top">
+                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-dark btn-sm px-3">Assign</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@await Html.PartialAsync("_AdminToast")

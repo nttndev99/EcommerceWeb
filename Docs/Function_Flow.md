@@ -20,7 +20,7 @@ PagingInfo.cs  ←── ViewModel chứa PagingInfo
 <div page-model="@Model.PagingInfo" ...>  ← trong View
 
 
-# Filter - Search - Paging - Soft Delete - Hard Delete - Restore  - (Category)
+# Filter - Search - Paging - Soft Delete - Hard Delete - Restore  - (Category) + Product + Inventory + ProductVariant + Order + Customer(Identity + Order)
 Domain
 Application: 
     Common: PagedResult, Result, SlugHelper (common)
@@ -34,7 +34,9 @@ Infrastructure:
     UnitOfWork (common)
     InfrastructureServiceRegistration (common)
 MVC:
-    Models: AlertViewModel (common) , CategoryIndexViewModel
     CategoriesController 
     View: index, trash, create, edit, softdelete, harddelete, detail, _categorytoast
     Filters: ActionFilter (common)
+
+# Auth + Email(Identity) + Roles-User(ADMIN) -------
+Identitiy(Serice) + Auth(Service) + Email(Service) + RolesManager(Service) + ManagerUser(Service)

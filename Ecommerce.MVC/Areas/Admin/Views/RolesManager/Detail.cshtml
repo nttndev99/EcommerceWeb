@@ -1,0 +1,117 @@
+@model Ecommerce.Application.DTOs.Admin.RoleDto
+@using Ecommerce.Application.DTOs.Admin
+
+@{
+    ViewData["Title"] = $"Role: {Model.Name}";
+    var users = ViewBag.Users as IEnumerable<AdminUserListDto> ?? Enumerable.Empty<AdminUserListDto>();
+}
+
+<div class="container-xxl py-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small mb-0">
+            <li class="breadcrumb-item">
+                <a asp-action="Index" class="text-decoration-none text-muted">Roles</a>
+            </li>
+            <li class="breadcrumb-item active fw-semibold">@Model.Name</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-semibold mb-0">
+                <i class="bi bi-shield-fill text-primary me-2"></i>@Model.Name
+            </h4>
+            <small class="text-muted">@Model.UserCount user(s) in this role</small>
+        </div>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2">
+            <span class="text-muted fw-bold text-uppercase small">
+                <i class="bi bi-people me-1"></i>Users
+            </span>
+            <span class="badge bg-light text-muted border small">@users.Count()</span>
+        </div>
+
+        @if (!users.Any())
+        {
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-people d-block mb-2 opacity-25" style="font-size:2.5rem"></i>
+                <p class="mb-0 small">No users assigned to this role.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light text-uppercase" style="font-size:.7rem;letter-spacing:.05em">
+                        <tr>
+                            <th class="ps-4 py-3 border-0">User</th>
+                            <th class="py-3 border-0">Email</th>
+                            <th class="py-3 border-0">Status</th>
+                            <th class="py-3 border-0">All Roles</th>
+                            <th class="pe-4 py-3 border-0 text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var u in users)
+                        {
+                            <tr>
+                                <td class="ps-4 py-3">
+                                    <div class="fw-medium">@u.FullName</div>
+                                    <div class="text-muted" style="font-size:.75rem">@(u.PhoneNumber ?? "—")</div>
+                                </td>
+                                <td class="text-muted">@u.Email</td>
+                                <td>
+                                    @if (u.IsLockedOut)
+                                    {
+                                        <span class="badge bg-danger rounded-pill">Locked</span>
+                                    }
+                                    else if (!u.IsActive)
+                                    {
+                                        <span class="badge bg-secondary rounded-pill">Inactive</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success rounded-pill">Active</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach (var r in u.Roles)
+                                        {
+                                            <span class="badge bg-light text-dark border rounded-pill">@r</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <a asp-controller="UsersManager" asp-action="Detail" asp-route-id="@u.Id"
+                                       class="btn btn-light btn-sm" title="View user">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <form asp-action="RemoveRole" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="UserId"   value="@u.Id" />
+                                        <input type="hidden" name="RoleName" value="@Model.Name" />
+                                        <input type="hidden" name="returnId" value="" />
+                                        <button type="submit" class="btn btn-light btn-sm text-danger"
+                                                onclick="return confirm('Remove @Model.Name from @u.FullName?')"
+                                                title="Remove role">
+                                            <i class="bi bi-person-dash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_AdminToast")

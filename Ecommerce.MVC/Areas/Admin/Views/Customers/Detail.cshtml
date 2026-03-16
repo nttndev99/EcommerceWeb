@@ -1,0 +1,299 @@
+@model Ecommerce.Application.DTOs.Customer.CustomerDto
+@using Ecommerce.Application.DTOs.Order
+@using Ecommerce.Domain.Enums
+
+@{
+    ViewData["Title"] = Model.FullName;
+    var orders = ViewBag.Orders as Ecommerce.Application.Common.PagedResult<OrderListDto>
+                 ?? new Ecommerce.Application.Common.PagedResult<OrderListDto>();
+
+    string OrderStatusBadge(OrderStatus s) => s switch
+    {
+        OrderStatus.Pending    => "bg-warning text-dark",
+        OrderStatus.Processing => "bg-primary",
+        OrderStatus.Shipped    => "bg-info text-dark",
+        OrderStatus.Delivered  => "bg-success",
+        OrderStatus.Cancelled  => "bg-danger",
+        _                      => "bg-secondary",
+    };
+
+    string PaymentBadge(PaymentStatus s) => s switch
+    {
+        PaymentStatus.Paid     => "bg-success",
+        PaymentStatus.Unpaid   => "bg-warning text-dark",
+        PaymentStatus.Refunded => "bg-secondary",
+        PaymentStatus.Failed   => "bg-danger",
+        _                      => "bg-secondary",
+    };
+}
+
+<div class="container-xxl py-4">
+
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb small mb-0">
+            <li class="breadcrumb-item">
+                <a asp-action="Index" class="text-decoration-none text-muted">Customers</a>
+            </li>
+            <li class="breadcrumb-item active fw-semibold">@Model.FullName</li>
+        </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+        <div class="d-flex align-items-center gap-3">
+            @if (!string.IsNullOrEmpty(Model.AvatarUrl))
+            {
+                <img src="@Model.AvatarUrl" width="64" height="64"
+                     class="rounded-circle border object-fit-cover flex-shrink-0"
+                     onerror="this.style.display='none'" />
+            }
+            else
+            {
+                <div class="rounded-circle border bg-light d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:64px;height:64px">
+                    <i class="bi bi-person-fill text-secondary fs-3"></i>
+                </div>
+            }
+            <div>
+                <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
+                    <h1 class="h4 fw-bold mb-0">@Model.FullName</h1>
+                    @if (Model.IsActive)
+                    {
+                        <span class="badge bg-success rounded-pill">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger rounded-pill">Blocked</span>
+                    }
+                </div>
+                <div class="d-flex flex-wrap gap-3 small text-muted">
+                    <span><i class="bi bi-envelope me-1"></i>@Model.Email</span>
+                    @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                    {
+                        <span><i class="bi bi-telephone me-1"></i>@Model.PhoneNumber</span>
+                    }
+                    <span><i class="bi bi-calendar3 me-1"></i>Joined @Model.CreatedAt.ToString("dd MMM yyyy")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-dark">
+                <i class="bi bi-pencil me-1"></i>Edit
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border h-100">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="rounded-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:42px;height:42px">
+                        <i class="bi bi-bag text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size:.65rem;letter-spacing:.06em">Total Orders</div>
+                        <div class="fw-bold font-monospace">@Model.TotalOrders</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border h-100">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="rounded-3 bg-success bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:42px;height:42px">
+                        <i class="bi bi-cash-stack text-success"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size:.65rem;letter-spacing:.06em">Total Spent</div>
+                        <div class="fw-bold font-monospace text-success">@Model.TotalSpent.ToString("N0") ₫</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border h-100">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="rounded-3 bg-info bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:42px;height:42px">
+                        <i class="bi bi-clock-history text-info"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size:.65rem;letter-spacing:.06em">Last Login</div>
+                        <div class="fw-bold small">
+                            @(Model.LastLoginAt.HasValue ? Model.LastLoginAt.Value.ToString("dd MMM yyyy") : "Never")
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border h-100">
+                <div class="card-body d-flex align-items-center gap-3 py-3">
+                    <div class="rounded-3 bg-warning bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:42px;height:42px">
+                        <i class="bi bi-calendar-check text-warning"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size:.65rem;letter-spacing:.06em">Member Since</div>
+                        <div class="fw-bold small">@Model.CreatedAt.ToString("MMM yyyy")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 align-items-start">
+
+        <div class="col-lg-8 d-flex flex-column gap-4">
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4 d-flex align-items-center gap-2">
+                    <span class="text-muted fw-bold text-uppercase small">
+                        <i class="bi bi-bag me-1"></i>Order History
+                    </span>
+                    <span class="badge bg-light text-muted border small">@Model.TotalOrders</span>
+                </div>
+
+                @if (!orders.Items.Any())
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-bag-x d-block mb-2 opacity-25" style="font-size:2.5rem"></i>
+                        <p class="mb-0 small">No orders yet.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 small">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4 py-3 border-0 text-muted fw-semibold text-uppercase small" style="font-size:.7rem">Order</th>
+                                    <th class="py-3 border-0 text-muted fw-semibold text-uppercase small" style="font-size:.7rem">Items</th>
+                                    <th class="py-3 border-0 text-muted fw-semibold text-uppercase small text-end" style="font-size:.7rem">Total</th>
+                                    <th class="py-3 border-0 text-muted fw-semibold text-uppercase small" style="font-size:.7rem">Payment</th>
+                                    <th class="py-3 border-0 text-muted fw-semibold text-uppercase small" style="font-size:.7rem">Status</th>
+                                    <th class="pe-4 py-3 border-0 text-muted fw-semibold text-uppercase small" style="font-size:.7rem">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var o in orders.Items)
+                                {
+                                    <tr>
+                                        <td class="ps-4">
+                                            <a asp-controller="Orders" asp-action="Detail" asp-route-id="@o.Id"
+                                               class="fw-semibold font-monospace text-decoration-none">
+                                                @o.OrderCode
+                                            </a>
+                                        </td>
+                                        <td class="text-muted">@o.ItemCount item(s)</td>
+                                        <td class="text-end fw-bold font-monospace">@o.Total.ToString("N0") ₫</td>
+                                        <td>
+                                            <span class="badge @PaymentBadge(o.PaymentStatus) rounded-pill">@o.PaymentStatus</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge @OrderStatusBadge(o.OrderStatus) rounded-pill">@o.OrderStatus</span>
+                                        </td>
+                                        <td class="pe-4 text-muted text-nowrap">@o.CreatedAt.ToString("dd MMM yyyy")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="px-4 py-3 border-top">
+                        <small class="text-muted">@orders.TotalCount order(s) total</small>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="col-lg-4 d-flex flex-column gap-4">
+
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4">
+                    <span class="text-muted fw-bold text-uppercase small">
+                        <i class="bi bi-person me-1"></i>Profile
+                    </span>
+                </div>
+                <div class="card-body px-4 py-2">
+                    @{
+                        void Row(string key, string? val, bool mono = false)
+                        {
+                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <span class="small text-muted">@key</span>
+                                <span class="small fw-semibold text-end ms-3 @(mono ? "font-monospace" : "")">@(val ?? "—")</span>
+                            </div>
+                        }
+                    }
+                    @{ Row("Gender",   Model.Gender); }
+                    @{ Row("Birthday", Model.DateOfBirth.HasValue ? Model.DateOfBirth.Value.ToString("dd MMM yyyy") : null); }
+                    @{ Row("Email",    Model.Email); }
+                    @{ Row("Phone",    Model.PhoneNumber); }
+                </div>
+            </div>
+
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4">
+                    <span class="text-muted fw-bold text-uppercase small">
+                        <i class="bi bi-geo-alt me-1"></i>Default Address
+                    </span>
+                </div>
+                <div class="card-body px-4 py-2">
+                    @{
+                        Row("Address",  Model.AddressLine);
+                        Row("Ward",     Model.Ward);
+                        Row("District", Model.District);
+                        Row("Province", Model.Province);
+                    }
+                </div>
+            </div>
+
+            <div class="card border">
+                <div class="card-header bg-transparent border-bottom py-3 px-4">
+                    <span class="text-muted fw-bold text-uppercase small">
+                        <i class="bi bi-lightning me-1"></i>Actions
+                    </span>
+                </div>
+                <div class="card-body px-4 py-3 d-grid gap-2">
+                    <a asp-action="Edit" asp-route-id="@Model.Id"
+                       class="btn btn-dark btn-sm d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-pencil-square"></i>Edit Profile
+                    </a>
+
+                    @if (Model.IsActive)
+                    {
+                        <form asp-action="SetActive" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id"       value="@Model.Id" />
+                            <input type="hidden" name="isActive" value="false" />
+                            <button type="submit"
+                                    class="btn btn-outline-danger btn-sm w-100 d-flex align-items-center justify-content-center gap-2"
+                                    onclick="return confirm('Block this customer?')">
+                                <i class="bi bi-slash-circle"></i>Block Customer
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form asp-action="SetActive" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id"       value="@Model.Id" />
+                            <input type="hidden" name="isActive" value="true" />
+                            <button type="submit"
+                                    class="btn btn-outline-success btn-sm w-100 d-flex align-items-center justify-content-center gap-2">
+                                <i class="bi bi-check-circle"></i>Activate Customer
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@await Html.PartialAsync("_CustomerToast")

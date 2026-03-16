@@ -5,72 +5,75 @@ using Ecommerce.MVC.Filters;
 using Ecommerce.Infrastructure.Identity;
 using Ecommerce.Infrastructure;
 using Ecommerce.Application;
+using Ecommerce.Domain.Entities;
 
 var builder = WebApplication.CreateBuilder(args);
+
 // Clean Architecture layer registrations
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+
 // MVC with Filters
 builder.Services
     .AddControllersWithViews(options =>
     {
-        // Global exception filter
         options.Filters.Add<GlobalExceptionFilter>();
-        // Global layout data filter
         options.Filters.Add<AdminLayoutFilter>();
     });
 
-// Register filters for DI
 builder.Services.AddScoped<PerformanceLogAttribute>();
-
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
 // EF
-builder.Services.AddDbContext<EcommerceDbContext>(opts => {
-    opts.UseSqlServer(builder.Configuration["ConnectionStrings:EcommerceConnection"]);
-});
-// Auth
+builder.Services.AddDbContext<EcommerceDbContext>(opts =>
+    opts.UseSqlServer(builder.Configuration["ConnectionStrings:EcommerceConnection"]));
+
+// Identity
 builder.Services
     .AddIdentity<AppUser, IdentityRole>()
     .AddEntityFrameworkStores<EcommerceDbContext>()
     .AddDefaultTokenProviders();
-builder.Services.AddAuthorization(options =>
+
+// Cookie paths
+builder.Services.ConfigureApplicationCookie(opt =>
 {
-    options.AddPolicy("RequireAdmin", policy =>
-        policy.RequireRole("Admin"));
-
-    options.AddPolicy("RequireCustomer", policy =>
-        policy.RequireRole("Customer"));
-
-    options.AddPolicy("CanManageProduct", policy =>
-        policy.RequireRole("Admin"));
+    opt.LoginPath        = "/Auth/Login";
+    opt.LogoutPath       = "/Auth/Logout";
+    opt.AccessDeniedPath = "/Auth/AccessDenied";
 });
 
+// Authorization policies
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("RequireAdmin",    policy => policy.RequireRole("Admin"));
+    options.AddPolicy("RequireCustomer", policy => policy.RequireRole("Customer"));
+    options.AddPolicy("CanManageProduct", policy => policy.RequireRole("Admin"));
+});
 
 builder.Services.AddRazorPages();
-builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddDistributedMemoryCache(); 
+builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
+    options.IdleTimeout      = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly  = true;
     options.Cookie.IsEssential = true;
 });
 
 var app = builder.Build();
 
-
 // ── Migrate + Seed ────────────────────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
-    var db     = scope.ServiceProvider.GetRequiredService<EcommerceDbContext>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var db       = scope.ServiceProvider.GetRequiredService<EcommerceDbContext>();
+    var logger   = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var services = scope.ServiceProvider;   // ← pass to seeder
+
     await db.Database.MigrateAsync();
-    await AppDbSeeder.SeedAsync(db, logger);
+    await AppDbSeeder.SeedAsync(db, logger, services);  // ← updated signature
 }
 
+// Pipeline
 if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
 else
@@ -79,25 +82,13 @@ else
     app.UseHsts();
 }
 
-app.MapRazorPages();
-app.UseSession();
-
-
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
-
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
-
-
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.MapRazorPages();
 app.MapStaticAssets();
 
 app.MapControllerRoute(
@@ -108,6 +99,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();

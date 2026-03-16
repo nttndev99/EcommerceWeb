@@ -1,0 +1,190 @@
+@model Ecommerce.Application.DTOs.Admin.AdminCreateUserDto
+
+@{
+    ViewData["Title"] = "Create User";
+    var allRoles = ViewBag.AllRoles as IEnumerable<string> ?? Enumerable.Empty<string>();
+}
+
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-semibold mb-0">Create User</h4>
+            <small class="text-muted">Add a new user account to the system</small>
+        </div>
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small mb-3"></div>
+
+        <div class="row g-4 align-items-start">
+
+            <div class="col-lg-8 d-flex flex-column gap-4">
+
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-person me-1"></i>Profile
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-4">
+                        <div class="row g-3">
+
+                            <div class="col-12">
+                                <label asp-for="FullName" class="form-label fw-medium small">
+                                    Full Name <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="FullName" type="text" class="form-control"
+                                       placeholder="e.g. John Doe" />
+                                <span asp-validation-for="FullName" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Email" class="form-label fw-medium small">
+                                    Email <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="Email" type="email" class="form-control"
+                                       placeholder="user@example.com" autocomplete="off" />
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="PhoneNumber" class="form-label fw-medium small">Phone</label>
+                                <input asp-for="PhoneNumber" type="tel" class="form-control"
+                                       placeholder="0901 234 567" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-lock me-1"></i>Password
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-4">
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <label asp-for="Password" class="form-label fw-medium small">
+                                    Password <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="Password" type="password" class="form-control"
+                                           placeholder="Min. 6 characters" id="pwInput"
+                                           autocomplete="new-password" />
+                                    <button type="button" class="btn btn-outline-secondary"
+                                            onclick="togglePw('pwInput', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="Password" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="ConfirmPassword" class="form-label fw-medium small">
+                                    Confirm Password <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input asp-for="ConfirmPassword" type="password" class="form-control"
+                                           placeholder="Repeat password" id="pwConfirm"
+                                           autocomplete="new-password" />
+                                    <button type="button" class="btn btn-outline-secondary"
+                                            onclick="togglePw('pwConfirm', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-4 d-flex flex-column gap-4">
+
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-shield me-1"></i>Role & Status
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-4">
+
+                        <div class="mb-3">
+                            <label asp-for="Role" class="form-label fw-medium small">
+                                Role <span class="text-danger">*</span>
+                            </label>
+                            <select asp-for="Role" class="form-select">
+                                @foreach (var r in allRoles)
+                                {
+                                    <option value="@r" selected="@(Model.Role == r ? "selected" : null)">@r</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Role" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox"
+                                       role="switch" id="isActiveSwitch" />
+                                <label class="form-check-label fw-medium small" for="isActiveSwitch">
+                                    Account Active
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-0">
+                            <div class="form-check form-switch">
+                                <input asp-for="EmailConfirmed" class="form-check-input" type="checkbox"
+                                       role="switch" id="emailConfirmedSwitch" />
+                                <label class="form-check-label fw-medium small" for="emailConfirmedSwitch">
+                                    Mark Email as Confirmed
+                                </label>
+                            </div>
+                            <div class="form-text mt-1">
+                                When enabled, user can log in immediately without email verification.
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="card border">
+                    <div class="card-body px-4 py-3 d-grid gap-2">
+                        <button type="submit"
+                                class="btn btn-dark btn-sm d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-person-plus"></i>Create User
+                        </button>
+                        <a asp-action="Index"
+                           class="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-x"></i>Cancel
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script>
+        function togglePw(inputId, btn) {
+            const input = document.getElementById(inputId);
+            const icon  = btn.querySelector('i');
+            input.type  = input.type === 'password' ? 'text' : 'password';
+            icon.className = input.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+        }
+    </script>
+}

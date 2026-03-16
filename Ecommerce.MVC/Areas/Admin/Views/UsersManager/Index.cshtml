@@ -1,0 +1,222 @@
+@model Ecommerce.Application.Common.PagedResult<Ecommerce.Application.DTOs.Admin.AdminUserListDto>
+@using Ecommerce.Application.DTOs.Admin
+
+@{
+    ViewData["Title"] = "Users Manager";
+    var filter   = ViewBag.Filter   as UserManagerFilterParams ?? new UserManagerFilterParams();
+    var allRoles = ViewBag.AllRoles as IEnumerable<string>     ?? Enumerable.Empty<string>();
+
+    Dictionary<string, string> PageRoute(int page) => new()
+    {
+        ["pageNumber"]    = page.ToString(),
+        ["pageSize"]      = filter.PageSize.ToString(),
+        ["search"]        = filter.Search        ?? "",
+        ["role"]          = filter.Role          ?? "",
+        ["isActive"]      = filter.IsActive.HasValue      ? filter.IsActive.Value.ToString().ToLower()      : "",
+        ["isLockedOut"]   = filter.IsLockedOut.HasValue   ? filter.IsLockedOut.Value.ToString().ToLower()   : "",
+        ["sortBy"]        = filter.SortBy        ?? "",
+        ["sortDirection"] = filter.SortDirection ?? "desc",
+    };
+}
+
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-semibold mb-0">Users Manager</h4>
+            <small class="text-muted">Manage all system user accounts</small>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3 px-4">
+            <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+
+                <div class="input-group input-group-sm" style="width:230px">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" value="@filter.Search"
+                           class="form-control border-start-0 ps-0"
+                           placeholder="Name, email, phone…" />
+                </div>
+
+                <select name="role" class="form-select form-select-sm" style="width:130px"
+                        onchange="this.form.submit()">
+                    <option value="">All roles</option>
+                    @foreach (var r in allRoles)
+                    {
+                        <option value="@r" selected="@(filter.Role == r ? "selected" : null)">@r</option>
+                    }
+                </select>
+
+                <select name="isActive" class="form-select form-select-sm" style="width:120px"
+                        onchange="this.form.submit()">
+                    <option value="">All status</option>
+                    <option value="true"  selected="@(filter.IsActive == true  ? "selected" : null)">Active</option>
+                    <option value="false" selected="@(filter.IsActive == false ? "selected" : null)">Inactive</option>
+                </select>
+
+                <select name="isLockedOut" class="form-select form-select-sm" style="width:120px"
+                        onchange="this.form.submit()">
+                    <option value="">All locks</option>
+                    <option value="true"  selected="@(filter.IsLockedOut == true  ? "selected" : null)">Locked</option>
+                    <option value="false" selected="@(filter.IsLockedOut == false ? "selected" : null)">Unlocked</option>
+                </select>
+
+                <select name="sortBy" class="form-select form-select-sm" style="width:130px">
+                    <option value="createdAt" selected="@(filter.SortBy=="createdAt" ? "selected":null)">Joined</option>
+                    <option value="fullname"  selected="@(filter.SortBy=="fullname"  ? "selected":null)">Name</option>
+                    <option value="lastlogin" selected="@(filter.SortBy=="lastlogin" ? "selected":null)">Last login</option>
+                </select>
+
+                <select name="pageSize" class="form-select form-select-sm" style="width:110px"
+                        onchange="this.form.submit()">
+                    @foreach (var size in new[] { 10, 25, 50 })
+                    {
+                        <option value="@size" selected="@(filter.PageSize == size ? "selected" : null)">
+                            @size / page
+                        </option>
+                    }
+                </select>
+
+                <button type="submit" class="btn btn-dark btn-sm px-3">Apply</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Reset</a>
+            </form>
+        </div>
+
+        @if (!Model.Items.Any())
+        {
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-people display-4 d-block mb-2 opacity-25"></i>
+                <p class="mb-0">No users found.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light text-uppercase" style="font-size:.7rem;letter-spacing:.05em">
+                        <tr>
+                            <th class="ps-4 py-3 border-0">User</th>
+                            <th class="py-3 border-0">Roles</th>
+                            <th class="py-3 border-0">Email</th>
+                            <th class="py-3 border-0">Status</th>
+                            <th class="py-3 border-0">Joined</th>
+                            <th class="pe-4 py-3 border-0 text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var u in Model.Items)
+                        {
+                            <tr>
+                                <td class="ps-4 py-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrEmpty(u.AvatarUrl))
+                                        {
+                                            <img src="@u.AvatarUrl" width="34" height="34"
+                                                 class="rounded-circle border flex-shrink-0" />
+                                        }
+                                        else
+                                        {
+                                            <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                                                 style="width:34px;height:34px">
+                                                <i class="bi bi-person text-secondary" style="font-size:.85rem"></i>
+                                            </div>
+                                        }
+                                        <div>
+                                            <div class="fw-semibold">@u.FullName</div>
+                                            <div class="text-muted" style="font-size:.75rem">@(u.PhoneNumber ?? "—")</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @foreach (var r in u.Roles)
+                                        {
+                                            <span class="badge bg-light text-dark border rounded-pill small">@r</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-muted">@u.Email</td>
+                                <td>
+                                    @if (u.IsLockedOut)
+                                    {
+                                        <span class="badge bg-danger rounded-pill">Locked</span>
+                                    }
+                                    else if (!u.IsActive)
+                                    {
+                                        <span class="badge bg-secondary rounded-pill">Inactive</span>
+                                    }
+                                    else if (!u.EmailConfirmed)
+                                    {
+                                        <span class="badge bg-warning text-dark rounded-pill">Unverified</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success rounded-pill">Active</span>
+                                    }
+                                </td>
+                                <td class="text-muted text-nowrap">@u.CreatedAt.ToString("dd MMM yyyy")</td>
+                                <td class="pe-4 text-end">
+                                    <a asp-action="Detail" asp-route-id="@u.Id"
+                                        class="btn btn-light btn-sm" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+
+                                    @if (@u.Email != "admin@ecommerce.com")
+                                    {
+                                    <a asp-action="Edit" asp-route-id="@u.Id"
+                                        class="btn btn-light btn-sm" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="Delete" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@u.Id" />
+                                        <button type="submit" class="btn btn-light btn-sm text-danger"
+                                                onclick="return confirm('Permanently delete @u.FullName?')"
+                                                title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    }
+
+
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer bg-white border-top d-flex align-items-center justify-content-between flex-wrap gap-2 py-3">
+                <small class="text-muted">
+                    Showing <strong>@(((Model.PageNumber-1)*Model.PageSize)+1)</strong>–<strong>@(Math.Min(Model.PageNumber*Model.PageSize,Model.TotalCount))</strong>
+                    of <strong>@Model.TotalCount</strong> users
+                </small>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 gap-1">
+                        <li class="page-item @(Model.PageNumber<=1?"disabled":"")">
+                            <a class="page-link rounded" asp-action="Index" asp-all-route-data="@PageRoute(Model.PageNumber-1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        @for (int p = Math.Max(1,Model.PageNumber-2); p<=Math.Min(Model.TotalPages,Model.PageNumber+2); p++)
+                        {
+                            <li class="page-item @(p==Model.PageNumber?"active":"")">
+                                <a class="page-link rounded" asp-action="Index" asp-all-route-data="@PageRoute(p)">@p</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.PageNumber>=Model.TotalPages?"disabled":"")">
+                            <a class="page-link rounded" asp-action="Index" asp-all-route-data="@PageRoute(Model.PageNumber+1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_AdminToast")

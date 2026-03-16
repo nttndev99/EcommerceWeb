@@ -1,0 +1,217 @@
+@model Ecommerce.Application.Common.PagedResult<Ecommerce.Application.DTOs.Customer.CustomerListDto>
+@using Ecommerce.Application.DTOs.Customer
+
+@{
+    ViewData["Title"] = "Customers";
+    var filter = ViewBag.Filter as CustomerFilterParams ?? new CustomerFilterParams();
+
+    bool IsNavActive(bool? active) =>
+        active.HasValue ? filter.IsActive == active : filter.IsActive == null;
+
+    Dictionary<string, string> PageRoute(int page) => new()
+    {
+        ["pageNumber"]    = page.ToString(),
+        ["pageSize"]      = filter.PageSize.ToString(),
+        ["search"]        = filter.Search        ?? "",
+        ["isActive"]      = filter.IsActive.HasValue ? filter.IsActive.Value.ToString().ToLower() : "",
+        ["sortBy"]        = filter.SortBy        ?? "",
+        ["sortDirection"] = filter.SortDirection ?? "desc",
+    };
+}
+
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-semibold mb-0">Customers</h4>
+            <small class="text-muted">Manage registered customer accounts</small>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3">
+
+        <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center gap-2 py-3 rounded-top-3">
+
+            <ul class="nav nav-pills me-auto gap-1">
+                @{
+                    (string label, bool? val, int count)[] tabs =
+                    {
+                        ("All",     null,  (int)ViewBag.TotalAll),
+                        ("Active",  true,  (int)ViewBag.TotalActive),
+                        ("Blocked", false, (int)ViewBag.TotalBlocked),
+                    };
+                }
+                @foreach (var (label, val, count) in tabs)
+                {
+                    bool active = IsNavActive(val);
+                    <li class="nav-item">
+                        <a asp-action="Index"
+                           asp-route-isActive="@(val.HasValue ? val.Value.ToString().ToLower() : "")"
+                           asp-route-search="@filter.Search"
+                           asp-route-pageSize="@filter.PageSize"
+                           asp-route-sortBy="@filter.SortBy"
+                           asp-route-sortDirection="@filter.SortDirection"
+                           class="nav-link px-3 py-1 @(active ? "active" : "text-muted")">
+                            @label
+                            <span class="badge @(active ? "bg-white text-dark" : "bg-dark") ms-1">@count</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+
+            <form method="get" class="d-flex flex-wrap align-items-center gap-2">
+                <div class="input-group input-group-sm" style="width:230px">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" name="search" value="@filter.Search"
+                           class="form-control border-start-0 ps-0"
+                           placeholder="Name, email, phone…" />
+                </div>
+
+                <select name="sortBy" class="form-select form-select-sm" style="width:140px">
+                    <option value="createdAt"  selected="@(filter.SortBy=="createdAt"  ? "selected":null)">Joined date</option>
+                    <option value="fullname"   selected="@(filter.SortBy=="fullname"   ? "selected":null)">Name</option>
+                    <option value="lastlogin"  selected="@(filter.SortBy=="lastlogin"  ? "selected":null)">Last login</option>
+                </select>
+
+                <select name="sortDirection" class="form-select form-select-sm" style="width:110px">
+                    <option value="desc" selected="@(filter.SortDirection=="desc" ? "selected":null)">↓ Newest</option>
+                    <option value="asc"  selected="@(filter.SortDirection=="asc"  ? "selected":null)">↑ Oldest</option>
+                </select>
+
+                <select name="pageSize" class="form-select form-select-sm" style="width:110px"
+                        onchange="this.form.submit()">
+                    @foreach (var size in new[] { 10, 25, 50 })
+                    {
+                        <option value="@size" selected="@(filter.PageSize == size ? "selected" : null)">
+                            @size / page
+                        </option>
+                    }
+                </select>
+
+                <input type="hidden" name="isActive" value="@(filter.IsActive.HasValue ? filter.IsActive.Value.ToString().ToLower() : "")" />
+                <button type="submit" class="btn btn-dark btn-sm px-3">Apply</button>
+            </form>
+        </div>
+
+        @if (!Model.Items.Any())
+        {
+            <div class="card-body text-center py-5 text-muted">
+                <i class="bi bi-people display-4 d-block mb-2 opacity-25"></i>
+                <p class="mb-0">No customers found.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light text-uppercase" style="font-size:.7rem;letter-spacing:.05em">
+                        <tr>
+                            <th class="ps-4 py-3 border-0">Customer</th>
+                            <th class="py-3 border-0">Contact</th>
+                            <th class="py-3 border-0 text-end">Orders</th>
+                            <th class="py-3 border-0 text-end">Total Spent</th>
+                            <th class="py-3 border-0">Last Login</th>
+                            <th class="py-3 border-0">Joined</th>
+                            <th class="py-3 border-0">Status</th>
+                            <th class="pe-4 py-3 border-0 text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in Model.Items)
+                        {
+                            <tr>
+                                <td class="ps-4 py-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        @if (!string.IsNullOrEmpty(c.AvatarUrl))
+                                        {
+                                            <img src="@c.AvatarUrl" width="36" height="36"
+                                                 class="rounded-circle border object-fit-cover flex-shrink-0"
+                                                 onerror="this.style.display='none'" />
+                                        }
+                                        else
+                                        {
+                                            <div class="rounded-circle bg-secondary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                                                 style="width:36px;height:36px">
+                                                <i class="bi bi-person text-secondary"></i>
+                                            </div>
+                                        }
+                                        <div>
+                                            <div class="fw-semibold">@c.FullName</div>
+                                            <div class="text-muted" style="font-size:.75rem">@c.Email</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-muted">@(c.PhoneNumber ?? "—")</td>
+                                <td class="text-end fw-semibold">@c.TotalOrders</td>
+                                <td class="text-end font-monospace fw-semibold text-success">
+                                    @c.TotalSpent.ToString("N0") ₫
+                                </td>
+                                <td class="text-muted text-nowrap">
+                                    @(c.LastLoginAt.HasValue ? c.LastLoginAt.Value.ToString("dd MMM yyyy") : "—")
+                                </td>
+                                <td class="text-muted text-nowrap">
+                                    @c.CreatedAt.ToString("dd MMM yyyy")
+                                </td>
+                                <td>
+                                    @if (c.IsActive)
+                                    {
+                                        <span class="badge bg-success rounded-pill">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger rounded-pill">Blocked</span>
+                                    }
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <a asp-action="Detail" asp-route-id="@c.Id"
+                                       class="btn btn-light btn-sm" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@c.Id"
+                                       class="btn btn-light btn-sm" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer bg-white border-top d-flex align-items-center justify-content-between flex-wrap gap-2 py-3 rounded-bottom-3">
+                <small class="text-muted">
+                    Showing
+                    <strong>@(((Model.PageNumber - 1) * Model.PageSize) + 1)</strong>–<strong>@(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount))</strong>
+                    of <strong>@Model.TotalCount</strong> customers
+                </small>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 gap-1">
+                        <li class="page-item @(Model.PageNumber <= 1 ? "disabled" : "")">
+                            <a class="page-link rounded" asp-action="Index"
+                               asp-all-route-data="@PageRoute(Model.PageNumber - 1)">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        @for (int p = Math.Max(1, Model.PageNumber - 2); p <= Math.Min(Model.TotalPages, Model.PageNumber + 2); p++)
+                        {
+                            <li class="page-item @(p == Model.PageNumber ? "active" : "")">
+                                <a class="page-link rounded" asp-action="Index"
+                                   asp-all-route-data="@PageRoute(p)">@p</a>
+                            </li>
+                        }
+                        <li class="page-item @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link rounded" asp-action="Index"
+                               asp-all-route-data="@PageRoute(Model.PageNumber + 1)">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+@await Html.PartialAsync("_CustomerToast")

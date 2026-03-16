@@ -1,0 +1,149 @@
+@model Ecommerce.Application.DTOs.Customer.UpdateCustomerDto
+
+@{
+    ViewData["Title"] = "Edit Customer";
+}
+
+<div class="container-fluid px-4 py-4">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-semibold mb-0">Edit Customer</h4>
+            <small class="text-muted">Update customer profile and address</small>
+        </div>
+        <a asp-action="Detail" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small mb-3"></div>
+        <input asp-for="Id" type="hidden" />
+
+        <div class="row g-4 align-items-start">
+
+            <div class="col-lg-8 d-flex flex-column gap-4">
+
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-person me-1"></i>Personal Info
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-4">
+                        <div class="row g-3">
+
+                            <div class="col-12">
+                                <label asp-for="FullName" class="form-label fw-medium small">
+                                    Full Name <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="FullName" type="text" class="form-control"
+                                       placeholder="Enter full name" />
+                                <span asp-validation-for="FullName" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="PhoneNumber" class="form-label fw-medium small">Phone</label>
+                                <input asp-for="PhoneNumber" type="tel" class="form-control"
+                                       placeholder="e.g. 0901234567" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="Gender" class="form-label fw-medium small">Gender</label>
+                                <select asp-for="Gender" class="form-select">
+                                    <option value="">— Select —</option>
+                                    <option value="Male"   selected="@(Model.Gender=="Male"   ? "selected":null)">Male</option>
+                                    <option value="Female" selected="@(Model.Gender=="Female" ? "selected":null)">Female</option>
+                                    <option value="Other"  selected="@(Model.Gender=="Other"  ? "selected":null)">Other</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label asp-for="DateOfBirth" class="form-label fw-medium small">Date of Birth</label>
+                                <input asp-for="DateOfBirth" type="date" class="form-control"
+                                       value="@Model.DateOfBirth?.ToString("yyyy-MM-dd")" />
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-geo-alt me-1"></i>Default Address
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-4">
+                        <div class="row g-3">
+
+                            <div class="col-12">
+                                <label asp-for="AddressLine" class="form-label fw-medium small">Street Address</label>
+                                <input asp-for="AddressLine" type="text" class="form-control"
+                                       placeholder="House number, street name" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label asp-for="Ward" class="form-label fw-medium small">Ward</label>
+                                <input asp-for="Ward" type="text" class="form-control" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label asp-for="District" class="form-label fw-medium small">District</label>
+                                <input asp-for="District" type="text" class="form-control" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label asp-for="Province" class="form-label fw-medium small">Province / City</label>
+                                <input asp-for="Province" type="text" class="form-control" />
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-4 d-flex flex-column gap-4">
+
+                <div class="card border">
+                    <div class="card-header bg-transparent border-bottom py-3 px-4">
+                        <span class="text-muted fw-bold text-uppercase small">
+                            <i class="bi bi-shield me-1"></i>Account Status
+                        </span>
+                    </div>
+                    <div class="card-body px-4 py-4">
+                        <div class="form-check form-switch">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox"
+                                   role="switch" id="isActiveSwitch" />
+                            <label class="form-check-label fw-medium small" for="isActiveSwitch">
+                                Account Active
+                            </label>
+                        </div>
+                        <div class="form-text mt-1">
+                            Deactivating will block the customer from logging in.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border">
+                    <div class="card-body px-4 py-3 d-grid gap-2">
+                        <button type="submit" class="btn btn-dark btn-sm d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-check2-circle"></i>Save Changes
+                        </button>
+                        <a asp-action="Detail" asp-route-id="@Model.Id"
+                           class="btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-x"></i>Cancel
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </form>
+
+</div>
+
+@section Scripts { @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); } }

@@ -2,6 +2,8 @@
 using Ecommerce.Application.Interfaces;
 using Ecommerce.Application.Interfaces.Services;
 using Ecommerce.Application.Services;
+using Ecommerce.Infrastructure.Identity;
+using Ecommerce.Infrastructure.Services;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Ecommerce.Application;
@@ -16,7 +18,14 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IProductImageService, ProductImageService>();
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<ICustomerService, CustomerService>();
 
+        services.AddScoped<IIdentityService, IdentityService>();
+        
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<IRolesService, RolesService>();
+        services.AddScoped<IUsersManagerService, UsersManagerService>();
 
         return services;
     }

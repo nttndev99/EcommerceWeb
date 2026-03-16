@@ -122,8 +122,7 @@ public class ProductService : IProductService
     //  CREATE
     // ────────────────────────────────────────────────────────────────────────────
 
-    public async Task<Result<ProductDto>> CreateAsync(
-        CreateProductDto dto, CancellationToken ct = default)
+    public async Task<Result<ProductDto>> CreateAsync(CreateProductDto dto, CancellationToken ct = default)
     {
         var slug = string.IsNullOrWhiteSpace(dto.Slug)
             ? SlugHelper.GenerateSlug(dto.Name)
