@@ -1,11 +1,14 @@
 using Ecommerce.Application.DTOs.Category;
 using Ecommerce.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Ecommerce.MVC.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Policy = "RequireAdmin")]
+
     public class CategoriesController : Controller
     {
         private readonly ICategoryService _categoryService;

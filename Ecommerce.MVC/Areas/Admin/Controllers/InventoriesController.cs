@@ -2,12 +2,15 @@ using Ecommerce.Application.DTOs.Inventory;
 using Ecommerce.Application.Interfaces;
 using Ecommerce.Application.Interfaces.Services;
 using Ecommerce.MVC.Areas.Admin.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Ecommerce.MVC.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Policy = "RequireAdmin")]
+
     public class InventoriesController : Controller
     {
         private readonly IInventoryService _inventoryService;

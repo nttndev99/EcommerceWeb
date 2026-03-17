@@ -14,7 +14,6 @@ public class AuthService : IAuthService
     private readonly UserManager<AppUser>   _userManager;
     private readonly SignInManager<AppUser> _signInManager;
     private readonly IEmailService          _emailService;
-
     public AuthService(
         UserManager<AppUser>   userManager,
         SignInManager<AppUser> signInManager,
@@ -172,13 +171,17 @@ public class AuthService : IAuthService
     // ─────────────────────────────────────────────
     private async Task SendConfirmationEmailAsync(AppUser user)
     {
-        var token        = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        try
+        {
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-        await _emailService.SendEmailConfirmationAsync(
-            user.Email!,
-            user.FullName,
-            user.Id,
-            encodedToken);
+            await _emailService.SendEmailConfirmationAsync(
+                user.Email!, user.FullName, user.Id, encodedToken);
+        }
+        catch (Exception ex)
+        {
+            // ← Swallow email errors — don't block registration
+        }
     }
 }

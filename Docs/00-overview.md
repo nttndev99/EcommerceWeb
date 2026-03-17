@@ -33,7 +33,7 @@ Admin users can:
 
 ## 3. Tech Stack
 - Architecture: Clean Architecture
-- Design Patterns: Repository Pattern, Dependency Injection (DI), Service Layer Pattern, Strategy Pattern, Factory Pattern, Observer Pattern
+- Design Patterns: Repository Pattern, Dependency Injection (DI), Service Layer Pattern, Strategy Pattern, Factory Pattern, Observer Pattern, Unit Of Work
 - Principle: SOLID, Clean Code
 - Language: C#, LINQ
 - BE: Asp.net core 

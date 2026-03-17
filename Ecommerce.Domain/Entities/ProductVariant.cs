@@ -10,6 +10,7 @@ public class ProductVariant : BaseEntity
     public decimal Price { get; set; }
     public decimal? SalePrice { get; set; }
     public string? Color { get; set; }
+    public string? ColorHex { get; set; }  // e.g. "#1a1a1a"
     public string? Size { get; set; }
     public string? Material { get; set; }
     public string? ImageUrl { get; set; }

@@ -1,9 +1,12 @@
 using Ecommerce.Application.DTOs.Product;
 using Ecommerce.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.Web.Controllers;
 [Area("Admin")]
+[Authorize(Policy = "RequireAdmin")]
+
 public class ProductVariantsController : Controller
 {
     private readonly IProductVariantService _variantService;

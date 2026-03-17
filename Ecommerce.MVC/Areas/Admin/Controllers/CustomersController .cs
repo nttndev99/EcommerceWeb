@@ -2,9 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using Ecommerce.Application.Common;
 using Ecommerce.Application.DTOs.Customer;
 using Ecommerce.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Ecommerce.Web.Controllers;
 [Area("Admin")]
+[Authorize(Policy = "RequireAdmin")]
+
 public class CustomersController : Controller
 {
     private readonly ICustomerService _customerService;

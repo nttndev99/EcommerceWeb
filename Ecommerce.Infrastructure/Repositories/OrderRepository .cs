@@ -11,7 +11,6 @@ namespace Ecommerce.Infrastructure.Repositories;
 public class OrderRepository : IOrderRepository
 {
     private readonly EcommerceDbContext _context;
- 
     public OrderRepository(EcommerceDbContext context)
     {
         _context = context;

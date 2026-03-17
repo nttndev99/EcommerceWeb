@@ -1,295 +1,369 @@
-    @* @await Html.PartialAsync("~/Views/Shared/_SectionBanner.cshtml")
 
-    <!-- Product Section Begin -->
-    <section class="product spad">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-12">
-                    <ul class="filter__controls">
-                        <li class="active" data-filter="*">Best Sellers</li>
-                        <li data-filter=".new-arrivals">New Arrivals</li>
-                        <li data-filter=".hot-sales">Hot Sales</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="row product__filter">
-                <div class="col-lg-3 col-md-6 col-sm-6 col-md-6 col-sm-6 mix new-arrivals">
-                    <div class="product__item">
-                        <div class="product__item__pic set-bg" data-setbg="img/product/product-1.jpg">
-                            <span class="label">New</span>
-                            <ul class="product__hover">
-                                <li><a href="#"><img src="img/icon/heart.png" alt=""></a></li>
-                                <li><a href="#"><img src="img/icon/compare.png" alt=""> <span>Compare</span></a></li>
-                                <li><a href="#"><img src="img/icon/search.png" alt=""></a></li>
-                            </ul>
-                        </div>
-                        <div class="product__item__text">
-                            <h6>Piqué Biker Jacket</h6>
-                            <a href="#" class="add-cart">+ Add To Cart</a>
-                            <div class="rating">
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                            </div>
-                            <h5>$67.24</h5>
-                            <div class="product__color__select">
-                                <label for="pc-1">
-                                    <input type="radio" id="pc-1">
-                                </label>
-                                <label class="active black" for="pc-2">
-                                    <input type="radio" id="pc-2">
-                                </label>
-                                <label class="grey" for="pc-3">
-                                    <input type="radio" id="pc-3">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 col-sm-6 col-md-6 col-sm-6 mix hot-sales">
-                    <div class="product__item">
-                        <div class="product__item__pic set-bg" data-setbg="img/product/product-2.jpg" >
-                            <ul class="product__hover">
-                                <li><a href="#"><img src="img/icon/heart.png" alt="" ></a></li>
-                                <li><a href="#"><img src="img/icon/compare.png" alt=""> <span>Compare</span></a></li>
-                                <li><a href="#"><img src="img/icon/search.png" alt=""></a></li>
-                            </ul>
-                        </div>
-                        <div class="product__item__text">
-                            <h6>Piqué Biker Jacket</h6>
-                            <a href="#" class="add-cart">+ Add To Cart</a>
-                            <div class="rating">
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                            </div>
-                            <h5>$67.24</h5>
-                            <div class="product__color__select">
-                                <label for="pc-4">
-                                    <input type="radio" id="pc-4">
-                                </label>
-                                <label class="active black" for="pc-5">
-                                    <input type="radio" id="pc-5">
-                                </label>
-                                <label class="grey" for="pc-6">
-                                    <input type="radio" id="pc-6">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 col-sm-6 col-md-6 col-sm-6 mix new-arrivals">
-                    <div class="product__item sale">
-                        <div class="product__item__pic set-bg" data-setbg="img/product/product-3.jpg">
-                            <span class="label">Sale</span>
-                            <ul class="product__hover">
-                                <li><a href="#"><img src="img/icon/heart.png" alt=""></a></li>
-                                <li><a href="#"><img src="img/icon/compare.png" alt=""> <span>Compare</span></a></li>
-                                <li><a href="#"><img src="img/icon/search.png" alt=""></a></li>
-                            </ul>
-                        </div>
-                        <div class="product__item__text">
-                            <h6>Multi-pocket Chest Bag</h6>
-                            <a href="#" class="add-cart">+ Add To Cart</a>
-                            <div class="rating">
-                                <i class="fa fa-star"></i>
-                                <i class="fa fa-star"></i>
-                                <i class="fa fa-star"></i>
-                                <i class="fa fa-star"></i>
-                                <i class="fa fa-star-o"></i>
-                            </div>
-                            <h5>$43.48</h5>
-                            <div class="product__color__select">
-                                <label for="pc-7">
-                                    <input type="radio" id="pc-7">
-                                </label>
-                                <label class="active black" for="pc-8">
-                                    <input type="radio" id="pc-8">
-                                </label>
-                                <label class="grey" for="pc-9">
-                                    <input type="radio" id="pc-9">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 col-sm-6 col-md-6 col-sm-6 mix hot-sales">
-                    <div class="product__item">
-                        <div class="product__item__pic set-bg" data-setbg="img/product/product-4.jpg">
-                            <ul class="product__hover">
-                                <li><a href="#"><img src="img/icon/heart.png" alt=""></a></li>
-                                <li><a href="#"><img src="img/icon/compare.png" alt=""> <span>Compare</span></a></li>
-                                <li><a href="#"><img src="img/icon/search.png" alt=""></a></li>
-                            </ul>
-                        </div>
-                        <div class="product__item__text">
-                            <h6>Diagonal Textured Cap</h6>
-                            <a href="#" class="add-cart">+ Add To Cart</a>
-                            <div class="rating">
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                            </div>
-                            <h5>$60.9</h5>
-                            <div class="product__color__select">
-                                <label for="pc-10">
-                                    <input type="radio" id="pc-10">
-                                </label>
-                                <label class="active black" for="pc-11">
-                                    <input type="radio" id="pc-11">
-                                </label>
-                                <label class="grey" for="pc-12">
-                                    <input type="radio" id="pc-12">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 col-sm-6 col-md-6 col-sm-6 mix new-arrivals">
-                    <div class="product__item">
-                        <div class="product__item__pic set-bg" data-setbg="img/product/product-5.jpg">
-                            <ul class="product__hover">
-                                <li><a href="#"><img src="img/icon/heart.png" alt=""></a></li>
-                                <li><a href="#"><img src="img/icon/compare.png" alt=""> <span>Compare</span></a></li>
-                                <li><a href="#"><img src="img/icon/search.png" alt=""></a></li>
-                            </ul>
-                        </div>
-                        <div class="product__item__text">
-                            <h6>Lether Backpack</h6>
-                            <a href="#" class="add-cart">+ Add To Cart</a>
-                            <div class="rating">
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                            </div>
-                            <h5>$31.37</h5>
-                            <div class="product__color__select">
-                                <label for="pc-13">
-                                    <input type="radio" id="pc-13">
-                                </label>
-                                <label class="active black" for="pc-14">
-                                    <input type="radio" id="pc-14">
-                                </label>
-                                <label class="grey" for="pc-15">
-                                    <input type="radio" id="pc-15">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 col-sm-6 col-md-6 col-sm-6 mix hot-sales">
-                    <div class="product__item sale">
-                        <div class="product__item__pic set-bg" data-setbg="img/product/product-6.jpg">
-                            <span class="label">Sale</span>
-                            <ul class="product__hover">
-                                <li><a href="#"><img src="img/icon/heart.png" alt=""></a></li>
-                                <li><a href="#"><img src="img/icon/compare.png" alt=""> <span>Compare</span></a></li>
-                                <li><a href="#"><img src="img/icon/search.png" alt=""></a></li>
-                            </ul>
-                        </div>
-                        <div class="product__item__text">
-                            <h6>Ankle Boots</h6>
-                            <a href="#" class="add-cart">+ Add To Cart</a>
-                            <div class="rating">
-                                <i class="fa fa-star"></i>
-                                <i class="fa fa-star"></i>
-                                <i class="fa fa-star"></i>
-                                <i class="fa fa-star"></i>
-                                <i class="fa fa-star-o"></i>
-                            </div>
-                            <h5>$98.49</h5>
-                            <div class="product__color__select">
-                                <label for="pc-16">
-                                    <input type="radio" id="pc-16">
-                                </label>
-                                <label class="active black" for="pc-17">
-                                    <input type="radio" id="pc-17">
-                                </label>
-                                <label class="grey" for="pc-18">
-                                    <input type="radio" id="pc-18">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 col-sm-6 col-md-6 col-sm-6 mix new-arrivals">
-                    <div class="product__item">
-                        <div class="product__item__pic set-bg" data-setbg="img/product/product-7.jpg">
-                            <ul class="product__hover">
-                                <li><a href="#"><img src="img/icon/heart.png" alt=""></a></li>
-                                <li><a href="#"><img src="img/icon/compare.png" alt=""> <span>Compare</span></a></li>
-                                <li><a href="#"><img src="img/icon/search.png" alt=""></a></li>
-                            </ul>
-                        </div>
-                        <div class="product__item__text">
-                            <h6>T-shirt Contrast Pocket</h6>
-                            <a href="#" class="add-cart">+ Add To Cart</a>
-                            <div class="rating">
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                            </div>
-                            <h5>$49.66</h5>
-                            <div class="product__color__select">
-                                <label for="pc-19">
-                                    <input type="radio" id="pc-19">
-                                </label>
-                                <label class="active black" for="pc-20">
-                                    <input type="radio" id="pc-20">
-                                </label>
-                                <label class="grey" for="pc-21">
-                                    <input type="radio" id="pc-21">
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6 col-sm-6 col-md-6 col-sm-6 mix hot-sales">
-                    <div class="product__item">
-                        <div class="product__item__pic set-bg" data-setbg="img/product/product-8.jpg">
-                            <ul class="product__hover">
-                                <li><a href="#"><img src="img/icon/heart.png" alt=""></a></li>
-                                <li><a href="#"><img src="img/icon/compare.png" alt=""> <span>Compare</span></a></li>
-                                <li><a href="#"><img src="img/icon/search.png" alt=""></a></li>
-                            </ul>
-                        </div>
-                        <div class="product__item__text">
-                            <h6>Basic Flowing Scarf</h6>
-                            <a href="#" class="add-cart">+ Add To Cart</a>
-                            <div class="rating">
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                                <i class="fa fa-star-o"></i>
-                            </div>
-                            <h5>$26.28</h5>
-                            <div class="product__color__select">
-                                <label for="pc-22">
-                                    <input type="radio" id="pc-22">
-                                </label>
-                                <label class="active black" for="pc-23">
-                                    <input type="radio" id="pc-23">
-                                </label>
-                                <label class="grey" for="pc-24">
-                                    <input type="radio" id="pc-24">
-                                </label>
+@model Ecommerce.MVC.Models.HomeViewModel
+@{ ViewData["Title"] = "Home"; }
+
+@* ══════════════════════════════════════
+   SECTION 1 — HERO SLIDER
+   owl-carousel  ·  2 static slides
+   (background images live in wwwroot/img/hero/)
+══════════════════════════════════════ *@
+<section class="hero">
+    <div class="hero__slider owl-carousel">
+
+        @* ── Slide 1 ── *@
+        <div class="hero__items set-bg" data-setbg="/img/banner/hero-1.jpg"
+             style="min-height:600px;display:flex;align-items:center;
+                    background-size:cover;background-position:center">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-5 col-lg-7 col-md-8">
+                        <div class="hero__text">
+                            <h6>New Collection</h6>
+                            <h2>Shop the Latest <br />Trends</h2>
+                            <p>
+                                Premium products across electronics, fashion &amp; more.<br />
+                                Free shipping on orders over 500,000 ₫.
+                            </p>
+                            <a asp-controller="Home" asp-action="Index" class="primary-btn">
+                                Shop Now <span class="arrow_right"></span>
+                            </a>
+                            <div class="hero__social">
+                                <a href="#"><i class="fa fa-facebook"></i></a>
+                                <a href="#"><i class="fa fa-twitter"></i></a>
+                                <a href="#"><i class="fa fa-pinterest"></i></a>
+                                <a href="#"><i class="fa fa-instagram"></i></a>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        @* ── Slide 2 ── *@
+        <div class="hero__items set-bg" data-setbg="/img/banner/hero-2.jpg"
+             style="min-height:600px;display:flex;align-items:center;
+                    background-size:cover;background-position:center">
+            <div class="container">
+                <div class="row">
+                    <div class="col-xl-5 col-lg-7 col-md-8">
+                        <div class="hero__text">
+                            <h6>Special Offer</h6>
+                            <h2>Up to 30% Off <br />Top Picks</h2>
+                            <p>
+                                Discover the best deals on electronics, accessories &amp; more.<br />
+                                Use code <strong>SAVE10</strong> for extra 10% off.
+                            </p>
+                            <a asp-controller="Home" asp-action="Shop" class="primary-btn">
+                                Explore Deals <span class="arrow_right"></span>
+                            </a>
+                            <div class="hero__social">
+                                <a href="#"><i class="fa fa-facebook"></i></a>
+                                <a href="#"><i class="fa fa-twitter"></i></a>
+                                <a href="#"><i class="fa fa-pinterest"></i></a>
+                                <a href="#"><i class="fa fa-instagram"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+@* ── /HERO ── *@
+
+
+@* ══════════════════════════════════════
+   SECTION 2 — BANNER
+   3 promotional image banners (static assets)
+   Layout mirrors the original template grid
+══════════════════════════════════════ *@
+<section class="banner spad">
+    <div class="container">
+        <div class="row">
+
+            <div class="col-lg-7 offset-lg-4">
+                <div class="banner__item">
+                    <div class="banner__item__pic">
+                        <img src="~/img/banner/banner-1.jpg" alt="Clothing Collections" />
+                    </div>
+                    <div class="banner__item__text">
+                        <h2>Clothing Collections 2025</h2>
+                        <a asp-controller="Home" asp-action="Category"
+                           asp-route-slug="thoi-trang">Shop now</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="banner__item banner__item--middle">
+                    <div class="banner__item__pic">
+                        <img src="~/img/banner/banner-2.jpg" alt="Accessories" />
+                    </div>
+                    <div class="banner__item__text">
+                        <h2>Accessories</h2>
+                        <a asp-controller="Home" asp-action="Category"
+                           asp-route-slug="phu-kien">Shop now</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="banner__item banner__item--last">
+                    <div class="banner__item__pic">
+                        <img src="~/img/banner/banner-3.jpg" alt="Electronics" />
+                    </div>
+                    <div class="banner__item__text">
+                        <h2>Electronics 2025</h2>
+                        <a asp-controller="Home" asp-action="Category"
+                           asp-route-slug="Electronics">Shop now</a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+@* ── /BANNER ── *@
+
+
+@* ══════════════════════════════════════
+   SECTION 3 — PRODUCT (TABBED FILTER)
+   Tab 1  →  Model.FeaturedProducts  (Best Sellers  · default visible)
+   Tab 2  →  Model.NewArrivals       (New Arrivals)
+   Tab 3  →  Model.OnSale            (Hot Sales)
+
+   Each product is rendered via the _ProductCard partial.
+   The wrapping div carries the MixItUp filter class:
+     featured   → mix best-sellers
+     new        → mix new-arrivals
+     on-sale    → mix hot-sales
+══════════════════════════════════════ *@
+@if (Model.Products.Any())
+{
+    <section class="product spad">
+        <div class="container">
+
+            <ul class="filter__controls">
+
+                <li class="active" onclick="loadProducts('best', this)">
+                Best Sellers
+                </li>
+
+                <li onclick="loadProducts('new', this)">
+                New Arrivals
+                </li>
+
+                <li onclick="loadProducts('sale', this)">
+                Hot Sales
+                </li>
+
+            </ul>
+
+            <div class="row product__filter" id="product-container">
+
+                @await Html.PartialAsync("_HomeProductList", Model.Products)
+
+            </div>
+
+        </div>
     </section>
-    <!-- Product Section End -->
- *@
+}
+@* ── /PRODUCT ── *@
+
+
+@* ══════════════════════════════════════
+   SECTION 4 — PROMO BANNER (Special Offer)
+   Maps to original <section class="banner py-4" style="background:#111">
+══════════════════════════════════════ *@
+<section class="banner py-4" style="background:#111">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8 text-white">
+                <h4 class="fw-bold mb-1">🎉 Special Offer</h4>
+                <p class="mb-0 text-white-50">
+                    Use code <strong class="text-white">SAVE10</strong> for 10% off your first order
+                </p>
+            </div>
+            <div class="col-lg-4 text-end mt-3 mt-lg-0">
+                <a asp-controller="Home" asp-action="Index" class="primary-btn">Shop Now</a>
+            </div>
+        </div>
+    </div>
+</section>
+@* ── /PROMO BANNER ── *@
+
+
+@* ══════════════════════════════════════
+   SECTION 5 — CATEGORIES
+   Model.Categories  →  category chips grid
+   + Deal-of-the-week countdown (static / configurable)
+   Layout: left text | centre image | right countdown
+@if (Model.Categories.Any())
+{
+    <section class="categories spad">
+        <div class="container">
+
+            <div class="row mb-4">
+                <div class="col-lg-12">
+                    <div class="section-title">
+                        <h2>Shop by Category</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-5">
+                @foreach (var cat in Model.Categories)
+                {
+                    <div class="col-lg-2 col-md-4 col-6 mb-4">
+                        <a asp-controller="Home"
+                           asp-action="Category"
+                           asp-route-slug="@cat.Slug"
+                           class="text-decoration-none text-dark">
+                            <div class="card border text-center p-3 h-100"
+                                 style="border-radius:12px;transition:all .2s"
+                                 onmouseover="this.style.background='#111';this.style.color='#fff'"
+                                 onmouseout="this.style.background='';this.style.color=''">
+                                <i class="bi bi-grid-fill fs-2 text-primary mb-2"></i>
+                                <div class="fw-semibold small">@cat.Name</div>
+                                @if (cat.ProductCount > 0)
+                                {
+                                    <div class="text-muted" style="font-size:.72rem">
+                                        @cat.ProductCount items
+                                    </div>
+                                }
+                            </div>
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+══════════════════════════════════════ *@
+
+
+
+
+
+@* ══════════════════════════════════════
+   SECTION 6 — BENEFIT STRIP
+   Maps to original <section class="spad" style="background:#fff;border-top:…">
+══════════════════════════════════════ *@
+<section class="spad" style="background:#fff;border-top:1px solid #f0f0f0">
+    <div class="container">
+        <div class="row text-center">
+
+            <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
+                <i class="bi bi-truck fs-1 text-primary d-block mb-2"></i>
+                <h6 class="fw-bold">Free Shipping</h6>
+                <p class="text-muted small mb-0">Orders over 500,000 ₫</p>
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
+                <i class="bi bi-shield-check fs-1 text-success d-block mb-2"></i>
+                <h6 class="fw-bold">Secure Payment</h6>
+                <p class="text-muted small mb-0">100% protected</p>
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
+                <i class="bi bi-arrow-counterclockwise fs-1 text-warning d-block mb-2"></i>
+                <h6 class="fw-bold">Easy Returns</h6>
+                <p class="text-muted small mb-0">30-day return policy</p>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <i class="bi bi-headset fs-1 text-danger d-block mb-2"></i>
+                <h6 class="fw-bold">24/7 Support</h6>
+                <p class="text-muted small mb-0">Always here to help</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+@* ── /BENEFIT STRIP ── *@
+
+
+@* ══════════════════════════════════════
+   TOAST NOTIFICATIONS
+   TempData["Success"] → green alert (bottom-right)
+   TempData["Error"]   → red alert   (bottom-right)
+══════════════════════════════════════ *@
+@if (TempData["Success"] != null)
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+        <div class="alert alert-success shadow py-2 px-3 small">
+            <i class="bi bi-check-circle me-1"></i>@TempData["Success"]
+        </div>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+        <div class="alert alert-danger shadow py-2 px-3 small">
+            <i class="bi bi-exclamation-circle me-1"></i>@TempData["Error"]
+        </div>
+    </div>
+}
+
+
+@* ══════════════════════════════════════
+   SCRIPTS SECTION
+   Countdown timer — runs client-side,
+   targets a deadline 3 days from page load
+   (replace with a real end-date from ViewModel if needed)
+══════════════════════════════════════ *@
+
+
+
+
+@section Scripts{
+<script>
+
+async function loadProducts(tab, element)
+{
+    const container = document.getElementById("product-container");
+
+    /* loading effect */
+    container.style.opacity = "0.3";
+    container.style.transition = "opacity 0.3s";
+
+    const response = await fetch(`/Home/LoadProducts?tab=${tab}`);
+
+    const html = await response.text();
+
+    /* replace html */
+    container.innerHTML = html;
+
+    /* fade in */
+    container.style.opacity = "0";
+
+    setTimeout(() => {
+        container.style.opacity = "3";
+    }, 50);
+
+    /* active tab */
+    document.querySelectorAll(".filter__controls li")
+        .forEach(li => li.classList.remove("active"));
+
+    element.classList.add("active");
+}
+
+
+    /* ─── set-bg helper (owl-carousel / instagram items) ─── */
+    (function () {
+        document.querySelectorAll('[data-setbg]').forEach(function (el) {
+            el.style.backgroundImage = 'url(' + el.dataset.setbg + ')';
+        });
+    })();
+
+
+</script>
+
+}
+
+    
+
+
+

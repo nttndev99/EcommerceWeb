@@ -1,0 +1,193 @@
+@model Ecommerce.Application.DTOs.Cart.CheckoutDto
+@using Ecommerce.Domain.Enums
+@{ ViewData["Title"] = "Checkout"; var cart = Model.Cart!; }
+
+<div class="container py-5">
+
+    <h3 class="fw-bold mb-1">Checkout</h3>
+    <p class="text-muted small mb-4">@cart.TotalItems item(s)</p>
+
+    <form asp-action="PlaceOrder" method="post">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small mb-3"></div>
+
+        <div class="row g-4 align-items-start">
+
+            <div class="col-lg-7 d-flex flex-column gap-4">
+
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white border-bottom py-3 px-4 fw-semibold">
+                        <i class="bi bi-geo-alt me-2 text-primary"></i>Shipping Address
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="RecipientName" class="form-label fw-medium small">
+                                    Full Name <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="RecipientName" class="form-control" />
+                                <span asp-validation-for="RecipientName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="RecipientPhone" class="form-label fw-medium small">
+                                    Phone <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="RecipientPhone" type="tel" class="form-control" />
+                                <span asp-validation-for="RecipientPhone" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12">
+                                <label asp-for="AddressLine" class="form-label fw-medium small">
+                                    Street Address <span class="text-danger">*</span>
+                                </label>
+                                <input asp-for="AddressLine" class="form-control"
+                                       placeholder="House number, street name" />
+                                <span asp-validation-for="AddressLine" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Ward" class="form-label fw-medium small">Ward <span class="text-danger">*</span></label>
+                                <input asp-for="Ward" class="form-control" />
+                                <span asp-validation-for="Ward" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="District" class="form-label fw-medium small">District <span class="text-danger">*</span></label>
+                                <input asp-for="District" class="form-control" />
+                                <span asp-validation-for="District" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="Province" class="form-label fw-medium small">Province <span class="text-danger">*</span></label>
+                                <select asp-for="Province" class="form-select">
+                                    <option value="">Select…</option>
+                                    @foreach (var p in new[]{"Hà Nội","Hồ Chí Minh","Đà Nẵng","Cần Thơ","Hải Phòng","Other"})
+                                    {
+                                        <option value="@p">@p</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="Province" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white border-bottom py-3 px-4 fw-semibold">
+                        <i class="bi bi-credit-card me-2 text-primary"></i>Payment Method
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var method in Enum.GetValues<PaymentMethod>())
+                            {
+                                var (icon, label) = method switch
+                                {
+                                    PaymentMethod.COD          => ("cash-stack",        "Cash on Delivery (COD)"),
+                                    PaymentMethod.BankTransfer => ("bank",              "Bank Transfer"),
+                                    PaymentMethod.CreditCard   => ("credit-card-fill",  "Credit / Debit Card"),
+                                    PaymentMethod.Momo         => ("phone-fill",        "MoMo Wallet"),
+                                    _                          => ("circle",            method.ToString())
+                                };
+                                <div class="form-check border rounded-3 p-3 m-0">
+                                  <input class="form-check-input"
+                                        type="radio"
+                                        asp-for="PaymentMethod"
+                                        value="@method"
+                                        id="pm-@method" />
+                                    <label class="form-check-label d-flex align-items-center gap-2 w-100"
+                                           for="pm-@method">
+                                        <i class="bi bi-@icon fs-5 text-primary"></i>
+                                        <span class="fw-medium small">@label</span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-body p-4">
+                        <label asp-for="Note" class="form-label fw-medium small">
+                            Order Note <span class="text-muted fw-normal">(optional)</span>
+                        </label>
+                        <textarea asp-for="Note" class="form-control" rows="2"
+                                  placeholder="Special delivery instructions…"></textarea>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm rounded-3 p-4 position-sticky" style="top:1.5rem">
+
+                    <h6 class="fw-bold mb-3">Order Summary</h6>
+
+                    <div class="d-flex flex-column gap-3 mb-3">
+                        @foreach (var item in cart.Items)
+                        {
+                            <div class="d-flex align-items-center gap-2">
+                                @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                {
+                                    <img src="@item.ImageUrl" width="44" height="44"
+                                         class="rounded-2 border object-fit-cover flex-shrink-0" />
+                                }
+                                else
+                                {
+                                    <div class="rounded-2 border bg-light flex-shrink-0"
+                                         style="width:44px;height:44px"></div>
+                                }
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="small fw-medium text-truncate">@item.ProductName</div>
+                                    @if (!string.IsNullOrEmpty(item.VariantName))
+                                    {
+                                        <div class="text-muted" style="font-size:.72rem">@item.VariantName</div>
+                                    }
+                                </div>
+                                <div class="text-end flex-shrink-0">
+                                    <div class="small fw-semibold">@item.TotalPrice.ToString("N0") ₫</div>
+                                    <div class="text-muted" style="font-size:.72rem">x@item.Quantity</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between small mb-2">
+                        <span class="text-muted">Subtotal</span>
+                        <span>@cart.SubTotal.ToString("N0") ₫</span>
+                    </div>
+                    <div class="d-flex justify-content-between small mb-2">
+                        <span class="text-muted">Shipping</span>
+                        <span id="shippingFeeDisplay">—</span>
+                    </div>
+                    @if (cart.DiscountAmount > 0)
+                    {
+                        <div class="d-flex justify-content-between small mb-2 text-success">
+                            <span>Discount (@cart.CouponCode)</span>
+                            <span>-@cart.DiscountAmount.ToString("N0") ₫</span>
+                        </div>
+                    }
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between fw-bold mb-4">
+                        <span>Estimated Total</span>
+                        <span class="text-success fs-5">@cart.Total.ToString("N0") ₫</span>
+                    </div>
+
+                    <button type="submit"
+                            class="btn btn-dark w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-lock-fill"></i>Place Order
+                    </button>
+
+                    <div class="text-center mt-3 text-muted small">
+                        <i class="bi bi-shield-check me-1 text-success"></i>Secure checkout
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

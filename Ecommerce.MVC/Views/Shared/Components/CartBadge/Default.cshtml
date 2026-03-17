@@ -1,0 +1,15 @@
+@model int
+<a asp-controller="Cart" asp-action="Index">
+    <img src="~/img/icon/cart.png" alt="Cart">
+    <span class="cart-badge">@(Model > 0 ? Model.ToString() : "0")</span>
+</a>
+@if (Model > 0)
+{
+    <div class="price text-dark fw-semibold" id="cartTotal">
+        @ViewBag.CartSubTotal
+    </div>
+}
+else
+{
+    <div class="price">$0.00</div>
+}

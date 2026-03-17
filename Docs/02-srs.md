@@ -1,110 +1,295 @@
-# Software Requirement Specification
+# 📄 SOFTWARE REQUIREMENTS SPECIFICATION (SRS)
 
-## Product Perspective
-The system is a standalone e-commerce application built with a service-oriented architecture. It integrates with third-party payment gateways and uses caching to ensure inventory consistency.
+## 🛒 Project: Ecommerce System
 
-## Product Functions
-- Product catalog management
-- Shopping cart and checkout
-- Online payment processing
-- Order lifecycle management
-- Real-time inventory management
-- Reporting and notifications
+---
 
-## User Classes and Characteristics
-- Customer: Purchases products and tracks orders
-- Admin: Manages products, inventory, and orders
-- System: Handles automation and background tasks
+# 1. 📌 Introduction
 
-## Operating Environment
-- Web browsers (Chrome, Edge, Firefox)
-- Backend: ASP.NET Core 
-- Database: MySQL
-- Cache: Redis
+## 1.1 Purpose
 
-## System Features and Requirements
-### User Authentication
-- Description: Users must authenticate to access protected features.
-- Functional Requirements:
-FR-1: System shall allow user registration
-FR-2: System shall allow user login/logout
-FR-3: System shall support role-based access control
-### Product Management
-- Description: Admin manages product catalog.
-- Functional Requirements:
-FR-4: Admin shall create, update, and delete products
-FR-5: System shall support Stock Keeping Unit products
-FR-6: System shall display product availability
-### Inventory Management (Core)
-- Description: System maintains accurate inventory in real time.
-- Functional Requirements:
-FR-7: System shall track inventory quantity per Stock Keeping Unit
-FR-8: System shall reserve inventory during checkout
-FR-9: System shall deduct inventory after successful payment
-FR-10: System shall restore inventory if payment fails
-FR-11: System shall trigger low-stock alerts
-### Shopping Cart & Checkout
-- Description: Customers add products to cart and complete checkout.
-- Functional Requirements:
-FR-12: System shall validate stock before checkout
-FR-13: System shall prevent checkout if stock is insufficient
-FR-14: System shall lock inventory during payment processing
-### Order Management
-- Description: System manages order lifecycle.
-- Functional Requirements:
-FR-15: System shall create an order with status "Pending Payment"
-FR-16: System shall update order status after payment
-FR-17: Admin shall cancel orders
-FR-18: System shall rollback inventory on cancellation
-### Payment Processing
-- Description: System integrates with external payment gateways.
-- Functional Requirements:
-FR-19: System shall redirect users to payment gateway
-FR-20: System shall handle payment success/failure callbacks
-FR-21: System shall prevent duplicate payments
-### Reporting & Notifications
-- Description: System provides insights and alerts.
-- Functional Requirements:
-FR-22: System shall generate sales reports
-FR-23: System shall display inventory reports
-FR-24: System shall notify admin of low stock
+Tài liệu này mô tả chi tiết các yêu cầu chức năng và phi chức năng cho hệ thống **Ecommerce**, phục vụ:
 
-## External Interface Requirements
-- User Interfaces:
-Responsive web UI
-Admin dashboard
-- Software Interfaces:
-Payment gateways (Stripe, VNPay)
-Email service (SMTP / SendGrid)
-- Communication Interfaces:
-HTTPS (REST APIs)
+* Developer
+* Tester
+* Stakeholder
 
-## Non-Functional Requirements
-- Performance:
-NFR-1: Inventory updates shall complete within 1 second
-NFR-2: System shall support 100+ concurrent checkouts
-- Security:
-NFR-3: Passwords shall be encrypted
-NFR-4: APIs shall require authentication
-- Reliability:
-NFR-5: Inventory data consistency ≥ 99.5%
-- Scalability:
-NFR-6: System shall support horizontal scaling
-- Availability:
-NFR-7: System uptime ≥ 99.9%
+---
 
-## Use Case Summary
-- Place Order: Customer
-- Process Payment: System
-- Manage Inventory: Admin
-- Cancel Order: Admin
+## 1.2 Scope
 
-## Future Enhancements
-- Multi-warehouse support
-- Supplier management
-- AI-based demand forecasting
-- Mobile applications
+Hệ thống thương mại điện tử bao gồm:
 
-## Appendix
-Order Status Flow:
-Created → Pending Payment → Paid → Processing → Shipped → Completed / Cancelled
+* Admin (MVC)
+* REST API
+* Backend theo Clean Architecture
+
+---
+
+## 1.3 Definitions
+
+| Term      | Meaning                         |
+| --------- | ------------------------------- |
+| SKU       | Mã định danh sản phẩm           |
+| Variant   | Biến thể sản phẩm (size, color) |
+| Inventory | Tồn kho                         |
+| DTO       | Data Transfer Object            |
+
+---
+
+# 2. 🧭 Overall Description
+
+## 2.1 Product Perspective
+
+* Hệ thống độc lập
+* Có thể mở rộng thành microservices
+
+---
+
+## 2.2 User Classes
+
+### Admin
+
+* Quản lý hệ thống
+
+### Customer
+
+* Mua hàng, theo dõi đơn
+
+---
+
+## 2.3 Operating Environment
+
+* Backend: .NET (ASP.NET Core)
+* Database: SQL Server
+* Frontend: Razor MVC
+* API: RESTful
+
+---
+
+# 3. 🧩 System Features
+
+---
+
+## 3.1 Category Management
+
+### Description
+
+Quản lý danh mục sản phẩm
+
+### Functional Requirements
+
+| ID    | Requirement             |
+| ----- | ----------------------- |
+| FR-01 | Tạo category            |
+| FR-02 | Cập nhật category       |
+| FR-03 | Xóa category            |
+| FR-04 | Xem danh sách category  |
+| FR-05 | Hỗ trợ category cha-con |
+
+---
+
+## 3.2 Product Management
+
+### Description
+
+Quản lý sản phẩm
+
+| ID    | Requirement       |
+| ----- | ----------------- |
+| FR-06 | Tạo sản phẩm      |
+| FR-07 | Cập nhật sản phẩm |
+| FR-08 | Xóa sản phẩm      |
+| FR-09 | Gán category      |
+| FR-10 | Quản lý variant   |
+
+---
+
+## 3.3 Product Variant
+
+| ID    | Requirement       |
+| ----- | ----------------- |
+| FR-11 | Tạo variant       |
+| FR-12 | SKU phải unique   |
+| FR-13 | Quản lý giá riêng |
+
+---
+
+## 3.4 Inventory Management
+
+| ID    | Requirement            |
+| ----- | ---------------------- |
+| FR-14 | Theo dõi tồn kho       |
+| FR-15 | Không cho phép tồn âm  |
+| FR-16 | Cập nhật tồn khi order |
+
+---
+
+## 3.5 Order Management
+
+| ID    | Requirement         |
+| ----- | ------------------- |
+| FR-17 | Tạo đơn hàng        |
+| FR-18 | Xem đơn hàng        |
+| FR-19 | Cập nhật trạng thái |
+| FR-20 | Tracking đơn        |
+
+---
+
+## 3.6 Authentication & Authorization
+
+| ID    | Requirement     |
+| ----- | --------------- |
+| FR-21 | Đăng ký         |
+| FR-22 | Đăng nhập       |
+| FR-23 | Phân quyền role |
+
+---
+
+# 4. 🔄 External Interface Requirements
+
+---
+
+## 4.1 User Interface
+
+* Admin UI: Razor Pages
+* Responsive design
+
+---
+
+## 4.2 API Interface
+
+### Product API
+
+| Method | Endpoint      |
+| ------ | ------------- |
+| GET    | /api/products |
+| POST   | /api/products |
+
+---
+
+## 4.3 Database Interface
+
+* SQL Server
+* EF Core ORM
+
+---
+
+# 5. ⚙️ Non-Functional Requirements
+
+---
+
+## 5.1 Performance
+
+* Response API < 200ms
+* Load page < 2s
+
+---
+
+## 5.2 Scalability
+
+* Hỗ trợ scale horizontal
+* Tách service sau này
+
+---
+
+## 5.3 Security
+
+* JWT Authentication
+* Role-based authorization
+* Hash password
+
+---
+
+## 5.4 Reliability
+
+* Không mất dữ liệu khi lỗi
+* Retry logic
+
+---
+
+## 5.5 Maintainability
+
+* Clean Architecture
+* SOLID principles
+
+---
+
+# 6. 🧠 Business Rules
+
+---
+
+## Product
+
+* Phải thuộc category
+* Có ít nhất 1 variant
+
+---
+
+## Inventory
+
+```
+Available = Quantity - ReservedQuantity
+```
+
+---
+
+## Order Status Flow
+
+```
+Pending → Confirmed → Shipping → Delivered → Cancelled
+```
+
+---
+
+# 7. 📊 Data Requirements
+
+* Lưu trữ thông tin sản phẩm
+* Lưu lịch sử đơn hàng
+* Tracking trạng thái
+
+---
+
+# 8. 🚨 Constraints
+
+* Sử dụng .NET
+* Sử dụng SQL Server
+* Áp dụng Clean Architecture
+
+---
+
+# 9. 🔮 Future Enhancements
+
+* Payment Gateway (VNPay, Stripe)
+* AI Recommendation
+* Realtime tracking (SignalR)
+
+---
+
+# 10. 🧪 Acceptance Criteria
+
+* CRUD hoạt động đúng
+* Không lỗi khi concurrent order
+* Inventory chính xác
+
+---
+
+# 11. 📅 Development Plan
+
+| Phase   | Description        |
+| ------- | ------------------ |
+| Phase 1 | Product + Category |
+| Phase 2 | Order + Inventory  |
+| Phase 3 | UI + Optimization  |
+
+---
+
+# 12. ✅ Conclusion
+
+Tài liệu SRS này:
+
+* Định nghĩa rõ yêu cầu hệ thống
+* Hỗ trợ dev & test
+* Là nền tảng để phát triển scalable ecommerce system
+
+---

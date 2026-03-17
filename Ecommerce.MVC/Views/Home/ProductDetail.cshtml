@@ -1,0 +1,614 @@
+@model Ecommerce.Application.DTOs.Product.ProductDto
+@using Ecommerce.Application.DTOs.Product
+
+@{
+    var related = ViewBag.Related as List<ProductListDto> ?? new();
+
+    bool hasSale = Model.SalePrice.HasValue && Model.SalePrice < Model.BasePrice;
+    int  disc    = hasSale
+                     ? (int)Math.Round((Model.BasePrice - Model.SalePrice!.Value) / Model.BasePrice * 100)
+                     : 0;
+    bool inStock = Model.TotalStock > 0;
+
+    ViewData["Title"] = Model.Name;
+
+    var images = (Model.Images != null && Model.Images.Any())
+        ? Model.Images
+        : new List<ProductImageDto>
+          {
+              new() { ImageUrl = Model.PrimaryImageUrl ?? "/img/product/default.jpg",
+                      AltText  = Model.Name, IsPrimary = true }
+          };
+
+    // Build color list (unique by Color name)
+    var colors = Model.Variants
+                      .Where(v => !string.IsNullOrEmpty(v.Color))
+                      .GroupBy(v => v.Color)
+                      .Select(g => g.First())
+                      .ToList();
+
+    // Build size list (unique by Size name)
+    var sizes = Model.Variants
+                     .Where(v => !string.IsNullOrEmpty(v.Size))
+                     .GroupBy(v => v.Size)
+                     .Select(g => g.First())
+                     .ToList();
+
+    // Determine the default variant to pre-select
+    // Priority: first active variant that has both color + size, else first color variant, else first size variant
+    var firstColorVariant = colors.FirstOrDefault();
+    var firstSizeVariant  = sizes.FirstOrDefault();
+
+    // We pre-select the very first variant overall for the hidden default input
+    var defaultVariant = Model.Variants.FirstOrDefault();
+}
+
+@* ── Toast ── *@
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show py-2 small mb-0"
+         style="border-radius:0;position:sticky;top:0;z-index:800">
+        <div class="container">
+            <i class="bi bi-check-circle me-1"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show py-2 small mb-0"
+         style="border-radius:0;position:sticky;top:0;z-index:800">
+        <div class="container">
+            <i class="bi bi-exclamation-circle me-1"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+}
+
+<!-- ===== Shop Details Section ===== -->
+<section class="shop-details">
+    <div class="product__details__pic">
+        <div class="container">
+
+            @* ── Breadcrumb ── *@
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="product__details__breadcrumb">
+                        <a asp-controller="Home" asp-action="Index">Home</a>
+                        @if (!string.IsNullOrEmpty(Model.CategoryName))
+                        {
+                            <a asp-controller="Home"
+                               asp-action="Category"
+                               asp-route-slug="@Model.CategoryName.ToLower().Replace(" ", "-")">
+                                @Model.CategoryName
+                            </a>
+                        }
+                        else
+                        {
+                            <a asp-controller="Home" asp-action="Shop">Shop</a>
+                        }
+                        <span>@Model.Name</span>
+                    </div>
+                </div>
+            </div>
+
+            @* ── Image Gallery ── *@
+            <div class="row">
+
+                @* Thumbnail column (left) *@
+                <div class="col-lg-3 col-md-3">
+                    <ul class="nav nav-tabs product-thumb-tabs" role="tablist">
+                        @for (int i = 0; i < images.Count; i++)
+                        {
+                            var img      = images[i];
+                            string tabId = $"tabs-{i + 1}";
+                            bool active  = i == 0;
+                            <li class="nav-item">
+                                <a class="nav-link @(active ? "active" : "")"
+                                   data-bs-toggle="tab"
+                                   href="#@tabId"
+                                   role="tab">
+                                    <div class="product__thumb__pic set-bg"
+                                         style="background-image:url('@img.ImageUrl')">
+                                    </div>
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+
+                @* Main image (centre) *@
+                <div class="col-lg-6 col-md-9">
+                    <div class="tab-content">
+                        @for (int i = 0; i < images.Count; i++)
+                        {
+                            var img      = images[i];
+                            string tabId = $"tabs-{i + 1}";
+                            bool active  = i == 0;
+                            <div class="tab-pane @(active ? "active" : "")"
+                                 id="@tabId"
+                                 role="tabpanel">
+                                <div class="product__details__pic__item">
+                                    <img src="@img.ImageUrl"
+                                         alt="@(img.AltText ?? Model.Name)"
+                                         style="max-height:480px;width:100%;object-fit:contain"
+                                         onerror="this.src='/img/product/default.jpg'" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+            </div><!-- /row gallery -->
+        </div>
+    </div><!-- /product__details__pic -->
+
+    <div class="product__details__content">
+        <div class="container">
+            <div class="row d-flex justify-content-center">
+                <div class="col-lg-8">
+                    <div class="product__details__text">
+
+                        @* Brand *@
+                        @if (!string.IsNullOrEmpty(Model.Brand))
+                        {
+                            <div class="text-muted small text-uppercase fw-semibold mb-1"
+                                 style="letter-spacing:.06em">@Model.Brand</div>
+                        }
+
+                        @* Name *@
+                        <h4>@Model.Name</h4>
+
+                        @* Rating + SKU *@
+                        <div class="rating d-flex align-items-center gap-2 flex-wrap">
+                            <div>
+                                <i class="fa fa-star"></i><i class="fa fa-star"></i>
+                                <i class="fa fa-star"></i><i class="fa fa-star"></i>
+                                <i class="fa fa-star-half-o"></i>
+                            </div>
+                            <span class="text-muted small"> - 4.8 Reviews</span>
+                            @if (!string.IsNullOrEmpty(Model.SKU))
+                            {
+                                <span class="text-muted small ms-3">SKU: <code>@Model.SKU</code></span>
+                            }
+                        </div>
+
+                        @* Price *@
+                        @if (hasSale)
+                        {
+                            <h3>
+                                <span style="color:#e74c3c">@Model.SalePrice!.Value.ToString("N0") ₫</span>
+                                <span class="ms-2"
+                                      style="font-size:.7em;color:#aaa;text-decoration:line-through;font-weight:400">
+                                    @Model.BasePrice.ToString("N0") ₫
+                                </span>
+                                <span class="badge bg-danger ms-2"
+                                      style="font-size:.58em;vertical-align:middle">-@disc%</span>
+                            </h3>
+                        }
+                        else
+                        {
+                            <h3>@Model.BasePrice.ToString("N0") ₫</h3>
+                        }
+
+                        @* Short description *@
+                        @if (!string.IsNullOrEmpty(Model.ShortDescription))
+                        {
+                            <p>@Model.ShortDescription</p>
+                        }
+
+                        @* ══════════════════════════════════════
+                           Cart form
+                           ══════════════════════════════════════ *@
+                        @if (inStock)
+                        {
+                            <form asp-controller="Cart" asp-action="Add" method="post" id="add-to-cart-form">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="ProductId"  value="@Model.Id" />
+                                <input type="hidden" name="returnUrl"
+                                       value="@Context.Request.Path@Context.Request.QueryString" />
+
+                                @* ── Variants (Size + Color) ── *@
+                                @if (colors.Any() || sizes.Any())
+                                {
+                                    <div class="product__details__option">
+
+                                        @* ── SIZE ── *@
+                                        @if (sizes.Any())
+                                        {
+                                            <div class="product__details__option__size mb-3">
+                                                <span>Size:</span>
+                                                @for (int si = 0; si < sizes.Count; si++)
+                                                {
+                                                    var v      = sizes[si];
+                                                    string sid = $"size-{v.Id}";
+                                                    bool   def = si == 0; @* ← auto-select first *@
+                                                    <label for="@sid"
+                                                           class="size-label @(def ? "active" : "")">
+                                                        @v.Size
+                                                      <input type="radio"
+                                                            id="@sid"
+                                                            name="SelectedSizeId"
+                                                            value="@v.Id"
+                                                            class="variant-radio"
+                                                            @(def ? "checked" : "")
+                                                            style="display:none" />
+                                                    </label>
+                                                }
+                                            </div>
+                                        }
+
+                                        @* ── COLOR ── *@
+                                        @if (colors.Any())
+                                        {
+                                            <div class="product__details__option__color mb-3">
+                                                <span>Color:</span>
+                                                @for (int ci = 0; ci < colors.Count; ci++)
+                                                {
+                                                    var    v       = colors[ci];
+                                                    string cid     = $"color-{v.Id}";
+                                                    string hexColor = !string.IsNullOrEmpty(v.ColorHex)
+                                                                        ? v.ColorHex : "#e5e7eb";
+                                                    @* auto-select first color only when no sizes exist *@
+                                                    bool defColor  = ci == 0 && !sizes.Any();
+                                                    <label class="color-swatch @(defColor ? "active" : "")"
+                                                           for="@cid"
+                                                           title="@v.Color"
+                                                           style="background-color:@hexColor">
+                                                        <input type="radio"
+                                                            id="@cid"
+                                                            name="SelectedColorId"
+                                                            value="@v.Id"
+                                                            class="variant-radio"
+                                                            @(ci == 0 ? "checked" : "")
+                                                            style="display:none" />
+                                                    </label>
+                                                }
+                                            </div>
+                                        }
+
+                                    </div>
+                                }
+
+                                @* ── Qty + Add to Cart ── *@
+                                <div class="product__details__cart__option">
+                                    <div class="quantity">
+                                        <div class="pro-qty" id="pro-qty-wrap">
+                                            <span class="qtybtn inc" id="qty-inc"> + </span>
+                                                <input type="number"
+                                                    id="qty"
+                                                    name="Quantity"
+                                                    value="1"
+                                                    min="1"
+                                                    max="@Model.TotalStock" />
+                                            <span class="qtybtn dec" id="qty-dec"> - </span>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="primary-btn">
+                                        <i class="fa fa-shopping-cart me-1"></i> Add to cart
+                                    </button>
+                                </div>
+
+                                @* ── Buy Now / Login ── *@
+                                <div class="product__details__btns__option mt-3">
+                                    @if (User.Identity?.IsAuthenticated == true)
+                                    {
+                                        <button type="submit"
+                                                formaction="@Url.Action("AddAndCheckout","Cart")"
+                                                class="primary-btn"
+                                                style="background:#111">
+                                            <i class="fa fa-bolt me-1"></i> Buy Now
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <a asp-area="Admin"
+                                           asp-controller="Auth"
+                                           asp-action="Login"
+                                           asp-route-returnUrl="@Context.Request.Path"
+                                           class="primary-btn"
+                                           style="background:#555">
+                                            <i class="fa fa-lock me-1"></i> Login to Order
+                                        </a>
+                                    }
+                                    &nbsp;<a href="#"><i class="fa fa-heart"></i> Add to wishlist</a>
+                                    &nbsp;<a href="#"><i class="fa fa-exchange"></i> Add To Compare</a>
+                                </div>
+
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="product__details__cart__option">
+                                <span class="primary-btn"
+                                      style="background:#6c757d;cursor:not-allowed;opacity:.7">
+                                    <i class="fa fa-times me-1"></i> Out of Stock
+                                </span>
+                            </div>
+                        }
+
+                        @* ── Meta / Safe-checkout ── *@
+                        <div class="product__details__last__option">
+                            <h5><span>Guaranteed Safe Checkout</span></h5>
+                            <img src="~/img/details-payment.png" alt="Safe Payment" />
+                            <ul>
+                                @if (!string.IsNullOrEmpty(Model.SKU))
+                                {
+                                    <li><span>SKU:</span> @Model.SKU</li>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.CategoryName))
+                                {
+                                    <li><span>Categories:</span> @Model.CategoryName</li>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.Tags))
+                                {
+                                    <li>
+                                        <span>Tags:</span>
+                                        @string.Join(", ", Model.Tags
+                                            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                            .Select(t => t.Trim()))
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            @* ── Description / Reviews / Info tabs ── *@
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="product__details__tab">
+                        <ul class="nav nav-tabs" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active" data-bs-toggle="tab"
+                                   href="#tabs-desc" role="tab">Description</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab"
+                                   href="#tabs-reviews" role="tab">Customer Reviews</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab"
+                                   href="#tabs-info" role="tab">Additional Information</a>
+                            </li>
+                        </ul>
+                        <div class="tab-content">
+
+                            <div class="tab-pane active" id="tabs-desc" role="tabpanel">
+                                <div class="product__details__tab__content">
+                                    @if (!string.IsNullOrEmpty(Model.Description))
+                                    {
+                                        <div class="product__details__tab__content__item">
+                                            <h5>Product Information</h5>
+                                            <p style="white-space:pre-wrap">@Model.Description</p>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <p class="note text-muted">No description available.</p>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="tab-pane" id="tabs-reviews" role="tabpanel">
+                                <div class="product__details__tab__content">
+                                    <div class="product__details__tab__content__item">
+                                        <h5>Customer Reviews</h5>
+                                        <p class="text-muted">No reviews yet. Be the first to review this product.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="tab-pane" id="tabs-info" role="tabpanel">
+                                <div class="product__details__tab__content">
+                                    <div class="product__details__tab__content__item">
+                                        <h5>Additional Information</h5>
+                                        <ul class="list-unstyled text-muted small">
+                                            @if (!string.IsNullOrEmpty(Model.Brand))
+                                            {
+                                                <li class="mb-1"><strong>Brand:</strong> @Model.Brand</li>
+                                            }
+                                            @if (!string.IsNullOrEmpty(Model.SKU))
+                                            {
+                                                <li class="mb-1"><strong>SKU:</strong> @Model.SKU</li>
+                                            }
+                                            @if (!string.IsNullOrEmpty(Model.CategoryName))
+                                            {
+                                                <li class="mb-1"><strong>Category:</strong> @Model.CategoryName</li>
+                                            }
+                                            <li class="mb-1">
+                                                <strong>Availability:</strong>
+                                                @(inStock ? $"{Model.TotalStock} in stock" : "Out of stock")
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+<!-- ===== Shop Details Section End ===== -->
+
+@* ── Related Products ── *@
+@if (related.Any())
+{
+    <section class="related spad">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12">
+                    <h3 class="related-title">Related Products</h3>
+                </div>
+            </div>
+            <div class="row">
+                @foreach (var r in related)
+                {
+                    <div class="col-lg-3 col-md-6 col-sm-6 mb-4">
+                        @await Html.PartialAsync("_ProductCard", r)
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+}
+
+@* ── Inline styles for variant selectors ── *@
+<style>
+    /* ── Size labels ── */
+    .size-label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        padding: 4px 10px;
+        margin: 0 4px 4px 0;
+        border: 1.5px solid #d1d5db;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: .85rem;
+        font-weight: 500;
+        color: #374151;
+        transition: border-color .15s, background .15s, color .15s;
+        user-select: none;
+    }
+    .size-label:hover  { border-color: #111; }
+    .size-label.active { border-color: #111; background: #111; color: #fff; }
+
+    /* ── Color swatches ── */
+    .color-swatch {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        margin: 0 5px 5px 0;
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid #fff;
+        outline: 2px solid #d1d5db;
+        transition: outline-color .15s, transform .15s;
+    }
+    .color-swatch:hover  { outline-color: #6b7280; transform: scale(1.1); }
+    .color-swatch.active { outline-color: #111;    transform: scale(1.1); }
+
+    /* ── Quantity stepper ── */
+    .pro-qty {
+        display: inline-flex;
+        align-items: center;
+        border: 1.5px solid #d1d5db;
+        border-radius: 4px;
+        overflow: hidden;
+        height: 46px;
+    }
+    .pro-qty input[type="number"] {
+        width: 52px;
+        text-align: center;
+        border: none;
+        outline: none;
+        font-size: 1rem;
+        font-weight: 600;
+        -moz-appearance: textfield;
+        appearance: textfield;
+        background: #fff;
+        color: #111;
+        height: 100%;
+        padding: 0;
+    }
+    .pro-qty input[type="number"]::-webkit-inner-spin-button,
+    .pro-qty input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .qtybtn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 100%;
+        font-size: 1.2rem;
+        font-weight: 700;
+        cursor: pointer;
+        background: #f9fafb;
+        color: #374151;
+        border: none;
+        transition: background .15s, color .15s;
+        user-select: none;
+        line-height: 1;
+    }
+    .qtybtn:hover  { background: #111; color: #fff; }
+    .qtybtn.dec    { border-right: 1.5px solid #d1d5db; }
+    .qtybtn.inc    { border-left:  1.5px solid #d1d5db; }
+    .qtybtn:active { transform: scale(.92); }
+</style>
+
+@section Scripts {
+<script>
+(function () {
+    'use strict';
+
+    /* ─────────────────────────────────────────
+       1. data-setbg (thumbnail backgrounds)
+       ───────────────────────────────────────── */
+    document.querySelectorAll('[data-setbg]').forEach(function (el) {
+        el.style.backgroundImage = 'url(' + el.dataset.setbg + ')';
+    });
+
+    /* ─────────────────────────────────────────
+       2. Variant radio — highlight active label
+       ───────────────────────────────────────── */
+    function syncVariantLabel(radio) {
+        // Deactivate all labels for this radio group
+        document.querySelectorAll('input[name="' + radio.name + '"]').forEach(function (r) {
+            var lbl = document.querySelector('label[for="' + r.id + '"]');
+            if (lbl) lbl.classList.remove('active');
+        });
+        // Activate the selected label
+        var sel = document.querySelector('label[for="' + radio.id + '"]');
+        if (sel) sel.classList.add('active');
+    }
+
+    document.querySelectorAll('.variant-radio').forEach(function (r) {
+        // Sync on change
+        r.addEventListener('change', function () { syncVariantLabel(this); });
+        if (r.checked) syncVariantLabel(r);
+    });
+
+    /* ─────────────────────────────────────────
+       3. Quantity stepper (+/-)
+       ───────────────────────────────────────── */
+    var qtyInput = document.getElementById('qty');
+    var qtyDec   = document.getElementById('qty-dec');
+    var qtyInc   = document.getElementById('qty-inc');
+
+    if (qtyInput && qtyDec && qtyInc) {
+        var maxQty = parseInt(qtyInput.getAttribute('max'), 10) || 9999;
+        var minQty = parseInt(qtyInput.getAttribute('min'), 10) || 1;
+
+        function clamp(val) {
+            return Math.min(maxQty, Math.max(minQty, val));
+        }
+
+        qtyDec.addEventListener('click', function () {
+            let val = parseInt(qtyInput.value) || minQty;
+            qtyInput.value = clamp(val - 1);
+        });
+
+        qtyInc.addEventListener('click', function () {
+            let val = parseInt(qtyInput.value) || minQty;
+            qtyInput.value = clamp(val + 1);
+        });
+
+        // Prevent manual input going out of range
+        qtyInput.addEventListener('change', function () {
+            this.value = clamp(parseInt(this.value, 10) || minQty);
+        });
+        qtyInput.addEventListener('blur', function () {
+            this.value = clamp(parseInt(this.value, 10) || minQty);
+        });
+    }
+
+})();
+</script>
+}

@@ -1,112 +1,394 @@
-# Functional Specification Document
+# 📄 FUNCTIONAL SPECIFICATION DOCUMENT (FSD)
 
-## Scope
-All functional flows, rules, validations, and system behaviors related to:
-- Product management
-- Inventory management (core focus)
-- Cart, checkout, and payment
-- Order lifecycle
-- Admin operations
+## 🛒 Project: Ecommerce System
 
-## System Overview
-### High-Level Flow
-- Customer browses products
-- Customer adds items to cart
-- System validates and reserves inventory
-- Customer completes payment
-- System confirms order and deducts inventory
-- Admin processes and fulfills order
-### User Roles
-- Customer:	End user purchasing products
-- Admin: Manages products, inventory, and orders
-- System: Automated background processing
+---
+
+# 1. 📌 Overview
+
+## 1.1 Purpose
+
+Tài liệu FSD mô tả chi tiết cách hệ thống hoạt động ở mức **function + logic + flow**, giúp:
+
+* Dev implement đúng
+* Tester test chính xác
+* BA/PM hiểu rõ luồng hệ thống
+
+---
+
+## 1.2 Scope
+
+Bao gồm:
+
+* Admin (MVC)
+* API (REST)
+* Business logic (Application Layer)
+
+---
+
+# 2. 🧩 Functional Modules
+
+---
+
+# 2.1 Category Module
+
+## 2.1.1 Create Category
+
+### Flow
+
+```
+Admin → Enter Category Info → Submit → Validate → Save DB → Return Result
+```
+
+### Input
+
+* Name (required)
+* ParentId (optional)
+
+### Validation
+
+* Name không được trống
+* Slug phải unique
+
+### Output
+
+* Success / Error message
+
+---
+
+## 2.1.2 Get Category Tree
+
+### Logic
+
+* Load tất cả categories
+* Build tree theo ParentId
+
+---
+
+# 2.2 Product Module
+
+---
+
+## 2.2.1 Create Product
+
+### Flow
+
+```
+Admin → Create Product → Add Variants → Save → DB
+```
+
+### Input
+
+* Name
+* CategoryId
+* Description
+* Variants[]
+
+### Validation
+
+* Product phải có ít nhất 1 variant
+* Category phải tồn tại
+
+---
+
+## 2.2.2 Get Product List
+
+### Logic
+
+* Query Products
+* Include Category
+* Include Variants
+* Paging + Filtering
+
+---
+
+## 2.2.3 Update Product
+
+### Logic
+
+* Update basic info
+* Sync variants (Add / Update / Delete)
+
+---
+
+# 2.3 Product Variant Module
+
+---
+
+## 2.3.1 Create Variant
+
+### Input
+
+* SKU
+* Price
+* Size
+* Color
+
+### Validation
+
+* SKU phải unique
+* Price > 0
+
+---
+
+# 2.4 Inventory Module
+
+---
+
+## 2.4.1 Update Inventory
+
+### Flow
+
+```
+Admin → Update Quantity → Save → DB
+```
+
+---
+
+## 2.4.2 Reserve Inventory (Quan trọng)
+
+### Flow
+
+```
+Order Created → Check Stock → Reserve Quantity → Save
+```
+
+### Logic
+
+```
+if (Quantity - ReservedQuantity < OrderQuantity)
+    → Reject Order
+else
+    → ReservedQuantity += OrderQuantity
+```
+
+---
+
+# 2.5 Order Module
+
+---
+
+## 2.5.1 Create Order
+
+### Flow
+
+```
+Customer → Checkout → Create Order → Validate → Save
+```
+
+### Steps
+
+1. Validate user
+2. Validate product + variant
+3. Check inventory
+4. Reserve inventory
+5. Create Order + OrderItems
+
+---
+
+## 2.5.2 Update Order Status
+
+### Allowed Transitions
+
+```
+Pending → Confirmed
+Confirmed → Shipping
+Shipping → Delivered
+Pending → Cancelled
+```
+
+---
+
+## 2.5.3 Cancel Order
+
+### Logic
+
+```
+Release ReservedQuantity
+Update Status = Cancelled
+```
+
+---
+
+# 2.6 Order Tracking Module
+
+---
+
+## 2.6.1 Add Tracking
+
+### Flow
+
+```
+Update Status → Insert OrderTracking
+```
+
+---
+
+# 2.7 Authentication Module
+
+---
+
+## 2.7.1 Register
+
+### Flow
+
+```
+User → Register → Validate → Create User → Return Token
+```
+
+---
+
+## 2.7.2 Login
+
+### Flow
+
+```
+User → Login → Validate → Generate JWT → Return Token
+```
+
+---
+
+# 3. 🔄 API Specifications
+
+---
+
+## 3.1 Product API
+
+### Create Product
+
+```
+POST /api/products
+```
+
+### Request
+
+```json
+{
+  "name": "T-Shirt",
+  "categoryId": 1,
+  "variants": [
+    {
+      "sku": "TS-001",
+      "price": 100
+    }
+  ]
+}
+```
+
+---
+
+## 3.2 Order API
+
+### Create Order
+
+```
+POST /api/orders
+```
+
+---
+
+# 4. 🧠 Business Logic Details
+
+---
+
+## 4.1 Inventory Calculation
+
+```
+Available = Quantity - ReservedQuantity
+```
+
+---
+
+## 4.2 Pricing
+
+```
+OrderItem.TotalPrice = Quantity * UnitPrice
+Order.TotalAmount = Sum(OrderItems)
+```
+
+---
+
+# 5. ⚠️ Error Handling
+
+| Case             | Behavior     |
+| ---------------- | ------------ |
+| SKU duplicate    | Reject       |
+| Out of stock     | Reject order |
+| Invalid category | Reject       |
+
+---
+
+# 6. 🔐 Security Flow
+
+* JWT authentication
+* Role-based authorization
+* Admin only access Admin APIs
+
+---
+
+# 7. 🧪 Validation Rules
+
+* Required fields check
+* Data type validation
+* Business rule validation
+
+---
+
+# 8. 🚀 Performance Optimization
+
+* Use projection (Select DTO)
+* Avoid N+1 query
+* Use pagination
+
+---
+
+# 9. 🧬 Mapping (Clean Architecture)
+
+| Layer      | Responsibility  |
+| ---------- | --------------- |
+| Controller | Receive request |
+| Service    | Business logic  |
+| Repository | Data access     |
+
+---
+
+# 10. 📊 Sequence Example (Order)
+
+```
+User → API → OrderService
+    → Validate
+    → InventoryService
+    → Reserve
+    → Save Order
+    → Return Response
+```
+
+---
+
+# 11. ✅ Acceptance Criteria
+
+* Order không vượt tồn kho
+* SKU unique
+* CRUD hoạt động chính xác
+* API trả đúng format
+
+---
+
+# 12. 📌 Notes
+
+* Luôn validate ở Service layer
+* Không xử lý business logic trong Controller
+* Sử dụng DTO để tách layer
+
+---
+
+# ✅ Conclusion
+
+FSD này mô tả:
+
+* Chi tiết flow hệ thống
+* Business logic cụ thể
+* API & validation
 
 
-## Functional Specifications
-### Authentication & Authorization
-Description: Controls access to the system based on user roles.
-Functional Behavior:
-- Users must log in to access protected features
-- Admin and Customer roles are enforced via RBAC
-Business Rules: 
-- One user can have only one primary role
-- Unauthorized access is denied
-### Product Management
-Description: Admin manages product catalog and Stock Keeping Unit.
-Functional Behavior:
-- Admin can create, edit, delete products
-- Each product has one or more Stock Keeping Unit
-- Product availability is derived from inventory
-Validations:
-- Stock Keeping Unit must be unique
-- Price must be greater than 0
-### Inventory Management (Core Module)
-Description: Ensures real-time and consistent inventory control.
-Inventory States:
-- Available
-- Reserved
-- Out of Stock
-Functional Behavior:
-- Inventory is checked when adding to cart
-- Inventory is reserved at checkout
-- Inventory is deducted after payment success
-- Inventory is released if payment fails or times out
-Business Rules:
-- One Stock Keeping Unit maps to one inventory record
-- Reserved inventory expires after configurable timeout
-- Inventory quantity cannot be negative
-### Cart Management
-Description: Temporary storage for customer-selected items.
-Functional Behavior:
-- Add item to cart
-- Update quantity
-- Remove item from cart
-Validations
-- Quantity must not exceed available inventory
-- Out-of-stock items cannot be added
-### Checkout & Payment
-Description: Handles order creation and payment processing.
-Functional Behavior:
-- System validates inventory before checkout
-- System creates order with status "Pending Payment"
-- System locks inventory during payment
-- System processes payment callback
-Business Rules:
-- Order is confirmed only after successful payment
-- Duplicate payment attempts are blocked
-### Order Management
-Order Status Flow:
-Created → Pending Payment → Paid → Processing → Shipped → Completed / Cancelled
-Functional Behavior:
-- System updates order status automatically
-- Admin can cancel orders before shipping
-- Inventory is restored on cancellation
-### Reporting & Notifications
-Description: Provides visibility into system operations.
-Functional Behavior:
-- Daily sales report generation
-- Inventory movement logs
-- Low-stock notifications to admin
-### Error Handling & Edge Cases
-- Scenario: System Behavior
-- Payment failure: Release reserved inventory
-- Concurrent checkout: First successful reservation wins
-- Inventory mismatch: Transaction rollback
-- Session timeout: Cart is cleared
-### Data Flow (Logical)
-Product → Inventory
-Cart → Checkout
-Checkout → Payment Gateway
-Payment Callback → Order + Inventory update
-### Assumptions & Constraints
-- Single warehouse
-- Online payment only
-- Moderate traffic scale
-### Out of Scope
-- Multi-vendor marketplace
-- Multi-warehouse inventory
-- Advanced promotions
-### Future Enhancements 
-- Multi-warehouse support
-- Supplier management
-- AI demand forecasting
+---

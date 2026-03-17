@@ -12,11 +12,10 @@ namespace Ecommerce.Infrastructure.Repositories
         public async Task<Product?> GetWithDetailsAsync(int id, CancellationToken ct = default)
             => await _dbSet
                 .Include(p => p.Category)
-                .Include(p => p.Variants.Where(v => !v.IsDeleted))
+                .Include(p => p.Variants.Where(v => v.IsActive))          // ← IsActive
                 .Include(p => p.Images.Where(i => !i.IsDeleted))
                 .Include(p => p.Inventories.Where(i => !i.IsDeleted))
-                .FirstOrDefaultAsync(p => p.Id == id, ct);
-
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted, ct); // ← thêm !p.IsDeleted
         public async Task<bool> SlugExistsAsync(string slug, int? excludeId = null, CancellationToken ct = default)
             => await _dbSet.AnyAsync(p => p.Slug == slug && (!excludeId.HasValue || p.Id != excludeId.Value), ct);
 

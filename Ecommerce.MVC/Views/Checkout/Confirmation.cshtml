@@ -1,0 +1,103 @@
+@model Ecommerce.Application.DTOs.Order.OrderDto
+@{ ViewData["Title"] = "Order Confirmed"; }
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+
+            <div class="text-center mb-5">
+                <div class="d-inline-flex align-items-center justify-content-center
+                            rounded-circle bg-success bg-opacity-10 mb-3"
+                     style="width:80px;height:80px">
+                    <i class="bi bi-check-circle-fill text-success" style="font-size:2.5rem"></i>
+                </div>
+                <h2 class="fw-bold mb-1">Order Placed!</h2>
+                <p class="text-muted mb-3">
+                    Thank you! A confirmation email has been sent to your inbox.
+                </p>
+                <code class="fs-5 fw-bold border rounded-2 px-3 py-1 bg-light">
+                    @Model.OrderCode
+                </code>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white border-bottom py-3 px-4 fw-semibold">
+                    Order Items
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 small">
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td class="ps-4 py-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                            {
+                                                <img src="@item.ImageUrl" width="44" height="44"
+                                                     class="rounded-2 border object-fit-cover flex-shrink-0" />
+                                            }
+                                            <div>
+                                                <div class="fw-medium">@item.ProductName</div>
+                                                @if (!string.IsNullOrEmpty(item.VariantName))
+                                                {
+                                                    <div class="text-muted" style="font-size:.73rem">@item.VariantName</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-muted">x@item.Quantity</td>
+                                    <td class="pe-4 text-end fw-semibold">@item.TotalPrice.ToString("N0") ₫</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="border-top">
+                            <tr>
+                                <td colspan="2" class="ps-4 text-muted small py-2">Subtotal</td>
+                                <td class="pe-4 text-end small">@Model.SubTotal.ToString("N0") ₫</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2" class="ps-4 text-muted small py-2">Shipping</td>
+                                <td class="pe-4 text-end small">@Model.ShippingFee.ToString("N0") ₫</td>
+                            </tr>
+                            @if (Model.DiscountAmount > 0)
+                            {
+                                <tr>
+                                    <td colspan="2" class="ps-4 text-success small py-2">Discount</td>
+                                    <td class="pe-4 text-end small text-success">-@Model.DiscountAmount.ToString("N0") ₫</td>
+                                </tr>
+                            }
+                            <tr class="fw-bold">
+                                <td colspan="2" class="ps-4 py-3">Total</td>
+                                <td class="pe-4 text-end text-success fs-6">@Model.Total.ToString("N0") ₫</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-3 mb-4">
+                <div class="card-header bg-white border-bottom py-3 px-4 fw-semibold">
+                    <i class="bi bi-geo-alt me-1 text-primary"></i>Shipping To
+                </div>
+                <div class="card-body px-4 py-3 small">
+                    <div class="fw-semibold">@Model.RecipientName</div>
+                    <div class="text-muted">@Model.RecipientPhone</div>
+                    <div class="text-muted">@Model.FullAddress</div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3 justify-content-center">
+                <a asp-controller="Orders" asp-action="Detail" asp-route-id="@Model.Id"
+                   class="btn btn-dark px-4">
+                    <i class="bi bi-bag-check me-1"></i>View Order
+                </a>
+                <a asp-controller="Home" asp-action="Index"
+                   class="btn btn-outline-secondary px-4">
+                    <i class="bi bi-bag me-1"></i>Continue Shopping
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>

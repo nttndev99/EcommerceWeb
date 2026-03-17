@@ -41,6 +41,7 @@ public class ProductListDto
     public int      VariantCount   { get; set; }
     public ProductStatus Status    { get; set; }
     public bool     IsFeatured     { get; set; }
+    public bool     IsNew     { get; set; }
     public string   CategoryName   { get; set; } = string.Empty;
     public string?  Brand          { get; set; }
     public string?  PrimaryImageUrl{ get; set; }

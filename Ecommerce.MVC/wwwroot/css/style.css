@@ -1643,7 +1643,6 @@ ol {
 	font-size: 20px;
 	font-weight: 400;
 	margin-left: 10px;
-	text-decoration: line-through;
 }
 
 .product__details__text p {
@@ -1760,7 +1759,6 @@ ol {
 }
 
 .product__details__cart__option .quantity .pro-qty {
-	width: 100px;
 	height: 40px;
 	border: 1px solid #e5e5e5;
 	position: relative;
@@ -1776,7 +1774,7 @@ ol {
 	border: none;
 }
 
-.product__details__cart__option .quantity .pro-qty .qtybtn {
+/* .product__details__cart__option .quantity .pro-qty .qtybtn {
 	font-size: 18px;
 	color: #0d0d0d;
 	position: absolute;
@@ -1786,7 +1784,7 @@ ol {
 	width: 10px;
 	cursor: pointer;
 	font-weight: 600;
-}
+} */
 
 .product__details__cart__option .quantity .pro-qty .qtybtn.inc {
 	top: 16px;

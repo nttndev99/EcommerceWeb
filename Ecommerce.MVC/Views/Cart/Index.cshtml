@@ -1,0 +1,264 @@
+@model Ecommerce.Application.DTOs.Cart.CartDto
+@{ ViewData["Title"] = "Shopping Cart"; }
+
+<div class="container py-5">
+
+    <h3 class="fw-bold mb-1">Shopping Cart</h3>
+    <p class="text-muted small mb-4">
+        @Model.TotalItems item(s) in your cart
+    </p>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2 small mb-3">
+            <i class="bi bi-check-circle me-1"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show py-2 small mb-3">
+            <i class="bi bi-exclamation-circle me-1"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model.IsEmpty)
+    {
+        <div class="card border-0 shadow-sm text-center py-5">
+            <div class="card-body">
+                <i class="bi bi-cart-x display-1 text-muted opacity-25 d-block mb-3"></i>
+                <h5 class="fw-semibold">Your cart is empty</h5>
+                <p class="text-muted">Browse our products and add something you like!</p>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-dark mt-2">
+                    <i class="bi bi-bag me-1"></i>Continue Shopping
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4 align-items-start">
+
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-3">
+
+                    @foreach (var item in Model.Items)
+                    {
+                        <div class="p-4 @(Model.Items.Last() != item ? "border-bottom" : "")
+                                        @(!item.IsAvailable ? "opacity-50" : "")">
+                            <div class="row align-items-center g-3">
+
+                                <div class="col-auto">
+                                    @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                    {
+                                        <img src="@item.ImageUrl" width="80" height="80"
+                                             class="rounded-2 border object-fit-cover" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-2 border bg-light d-flex align-items-center
+                                                    justify-content-center"
+                                             style="width:80px;height:80px">
+                                            <i class="bi bi-image text-muted fs-3"></i>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="col">
+                                    <div class="fw-semibold">@item.ProductName</div>
+                                    @if (!string.IsNullOrEmpty(item.VariantName))
+                                    {
+                                        <div class="text-muted small">@item.VariantName</div>
+                                    }
+                                    @if (!string.IsNullOrEmpty(item.SKU))
+                                    {
+                                        <code class="small text-muted">@item.SKU</code>
+                                    }
+                                    @if (!item.IsAvailable)
+                                    {
+                                        <div class="text-danger small mt-1">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>Out of stock — will be removed
+                                        </div>
+                                    }
+
+                                    <div class="mt-1">
+                                        <price-display base-price="@item.OriginalPrice"
+                                                       sale-price="@(item.UnitPrice < item.OriginalPrice ? item.UnitPrice : (decimal?)null)"
+                                                       size="sm" />
+                                    </div>
+                                </div>
+
+                                <div class="col-auto">
+                                    <form asp-action="UpdateQuantity" method="post" class="d-flex align-items-center gap-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="CartItemId" value="@item.CartItemId" />
+                                  <div class="input-group input-group-sm flex-nowrap" style="width:120px;">
+                                        <button type="submit" name="Quantity"
+                                                value="@Math.Max(1, item.Quantity - 1)"
+                                                class="btn btn-outline-secondary">
+                                            <i class="bi bi-dash"></i>
+                                        </button>
+
+                                        <span class="input-group-text bg-white fw-bold text-center" style="min-width:40px;">
+                                            @item.Quantity
+                                        </span>
+
+                                        <button type="submit" name="Quantity"
+                                                value="@Math.Min(item.MaxStock, item.Quantity + 1)"
+                                                class="btn btn-outline-secondary"
+                                                @(item.Quantity >= item.MaxStock ? "disabled" : "")>
+                                            <i class="bi bi-plus"></i>
+                                        </button>
+                                    </div>
+                                    </form>
+                                </div>
+
+                                <div class="col-auto text-end" style="min-width:90px">
+                                    <div class="fw-bold">@item.TotalPrice.ToString("N0") ₫</div>
+                                </div>
+
+                                <div class="col-auto">
+                                    <form asp-action="Remove" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="cartItemId" value="@item.CartItemId" />
+                                        <button type="submit" class="btn btn-link text-danger p-0 small"
+                                                onclick="return confirm('Remove this item?')">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    </form>
+                                </div>
+
+                            </div>
+                        </div>
+                    }
+
+                    <div class="px-4 py-3 bg-light d-flex justify-content-between border-top rounded-bottom-3">
+                        <a asp-controller="Home" asp-action="Index"
+                           class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-arrow-left me-1"></i>Continue Shopping
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-3 p-4">
+
+                    <h6 class="fw-bold mb-3">Order Summary</h6>
+
+                    <div class="d-flex justify-content-between small mb-2">
+                        <span class="text-muted">Subtotal (@Model.TotalItems items)</span>
+                        <span>@Model.SubTotal.ToString("N0") ₫</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">Shipping</span>
+                            <span>
+                                @if (Model.ShippingFee > 0)
+                                {
+                                    @Model.ShippingFee.ToString("N0")@: ₫
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </span>
+                        </div>
+                        <form asp-action="UpdateShipping" method="post">
+                            @Html.AntiForgeryToken()
+                            <div class="input-group input-group-sm">
+                                    <select name="ShippingProvince" class="form-select">
+                                        <option value="Hà Nội"
+                                            selected="@(TempData["ShippingProvince"]?.ToString() == "Hà Nội")">
+                                            Hà Nội
+                                        </option>
+
+                                        <option value="Hồ Chí Minh"
+                                            selected="@(TempData["ShippingProvince"]?.ToString() == "Hồ Chí Minh")">
+                                            Hồ Chí Minh
+                                        </option>
+
+                                        <option value="Đà Nẵng"
+                                            selected="@(TempData["ShippingProvince"]?.ToString() == "Đà Nẵng")">
+                                            Đà Nẵng
+                                        </option>
+
+                                        <option value="Other"
+                                            selected="@(TempData["ShippingProvince"]?.ToString() == "Other")">
+                                            Other provinces
+                                        </option>
+                                    </select>
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">
+                                    Estimate
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="mb-3">
+                        @if (!string.IsNullOrEmpty(Model.CouponCode))
+                        {
+                            <div class="d-flex justify-content-between align-items-center small mb-1 text-success">
+                                <span>
+                                    <i class="bi bi-tag me-1"></i>@Model.CouponCode
+                                </span>
+                                <span>-@Model.DiscountAmount.ToString("N0") ₫</span>
+                            </div>
+                            <form asp-action="RemoveCoupon" method="post">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-link text-danger p-0 small">
+                                    <i class="bi bi-x me-1"></i>Remove coupon
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <form asp-action="ApplyCoupon" method="post">
+                                @Html.AntiForgeryToken()
+                                <div class="input-group input-group-sm">
+                                    <input type="text" name="Code" class="form-control"
+                                            placeholder="Coupon code" />
+                                    <button type="submit" class="btn btn-outline-secondary">Apply</button>
+                                </div>
+                            </form>
+                        }
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-between fw-bold mb-4">
+                        <span>Total</span>
+                        <span class="text-success fs-5">@Model.Total.ToString("N0") ₫</span>
+                    </div>
+
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <a asp-controller="Checkout" asp-action="Index"
+                            class="btn btn-dark w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-lock-fill"></i>Proceed to Checkout
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="d-grid gap-2">
+                            <a asp-area="Admin" asp-controller="Auth" asp-action="Login"
+                                asp-route-returnUrl="/Checkout"
+                                class="btn btn-dark py-2 d-flex align-items-center justify-content-center gap-2">
+                                <i class="bi bi-person-fill"></i>Login to Checkout
+                            </a>
+                            <div class="text-center text-muted small">or</div>
+                            <a asp-area="Admin"  asp-controller="Auth" asp-action="Register"
+                                class="btn btn-outline-dark btn-sm d-flex align-items-center justify-content-center gap-2">
+                                <i class="bi bi-person-plus"></i>Create an Account
+                            </a>
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
+    }
+</div>

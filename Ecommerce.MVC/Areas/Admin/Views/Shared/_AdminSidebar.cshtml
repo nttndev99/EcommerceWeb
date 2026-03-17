@@ -3,7 +3,7 @@
   <!--begin::Sidebar Brand-->
   <div class="sidebar-brand">
     <!--begin::Brand Link-->
-    <a href="./index.html" class="brand-link">
+    <a asp-area="Admin" asp-controller="Home" asp-action="Index" class="brand-link">
       <!--begin::Brand Image-->
       <img src="~/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image opacity-75 shadow" />
       <!--end::Brand Image-->
@@ -30,7 +30,7 @@
           </a>
           <ul class="nav nav-treeview">
             <li class="nav-item">
-                <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="nav-link">
+                <a asp-area="Admin" asp-controller="Home" asp-action="Index" class="nav-link">
                 <i class="nav-icon bi bi-box-arrow-in-right"></i>
                 <p>Dashboard v1</p>
               </a>
@@ -230,6 +230,23 @@
                 Setting
               </p>
             </a>
+          </li>
+          <li class="nav-item">
+                <form asp-area="Admin"
+                    asp-controller="Auth"
+                    asp-action="Logout"
+                    method="post"
+                    class="d-inline">
+                  @Html.AntiForgeryToken()
+                    <button type="submit" class="nav-link">
+                      <i class="nav-icon bi bi-gear"></i>
+                      <p>
+                        Logout
+                      </p>
+                    </button>
+                </form>
+          </li>
+          <li>
           </li>
         </li>
       </ul>

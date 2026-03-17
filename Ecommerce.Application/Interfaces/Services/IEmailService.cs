@@ -9,5 +9,8 @@ namespace Ecommerce.Application.Interfaces.Services
     {
         Task SendEmailConfirmationAsync(string toEmail, string fullName, string userId, string token);
         Task SendPasswordResetAsync(string toEmail, string fullName, string userId, string token);
+
+        Task SendOrderConfirmationAsync(string toEmail, string fullName, string orderCode, decimal total);
+
     }
 }

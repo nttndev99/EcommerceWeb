@@ -6,6 +6,7 @@ using Ecommerce.Application.DTOs.Product;
 using Ecommerce.Application.Interfaces;
 using Ecommerce.Application.Interfaces.Services;
 using Ecommerce.Domain.Entities;
+using Ecommerce.Domain.Enums;
 using Ecommerce.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -391,5 +392,73 @@ public class ProductService : IProductService
     }
 
 
+//-------------------------
+    public async Task<List<ProductListDto>> GetHomeProducts(string tab, CancellationToken ct)
+    {
+        var query = _uow.Products.Query()
+            .AsNoTracking()
+            .Where(p => p.Status == ProductStatus.Active && !p.IsDeleted)
 
+            // KHONG LAY OUT OF STOCK
+            .Where(p => _uow.Inventories.Query()
+                .Where(i => i.ProductId == p.Id)
+                .Sum(i => (int?)(i.Quantity - i.ReservedQuantity)) > 0);
+
+        switch (tab)
+        {
+            case "new":
+                query = query
+                    .OrderByDescending(p => p.CreatedAt);
+                break;
+
+            case "sale":
+                query = query
+                    .Where(p => p.SalePrice != null)
+                    .OrderByDescending(p => p.CreatedAt);
+                break;
+
+            default: // best
+                query = query
+                    .Where(p => p.IsFeatured)
+                    .OrderByDescending(p => p.CreatedAt);
+                break;
+        }
+
+        return await query
+            .Take(8)
+            .Select(p => new ProductListDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Slug = p.Slug,
+                BasePrice = p.BasePrice,
+                SalePrice = p.SalePrice,
+                SKU = p.SKU,
+                Status = p.Status,
+                IsFeatured = p.IsFeatured,
+                Brand = p.Brand,
+                CreatedAt = p.CreatedAt,
+
+                CategoryName = p.Category != null ? p.Category.Name : null,
+
+                TotalStock = _uow.Inventories.Query()
+                    .Where(i => i.ProductId == p.Id)
+                    .Sum(i => (int?)(i.Quantity - i.ReservedQuantity)) ?? 0,
+
+                PrimaryImageUrl = p.Images
+                    .Where(i => i.IsPrimary)
+                    .Select(i => i.ImageUrl)
+                    .FirstOrDefault(),
+
+                IsNew = p.CreatedAt > DateTime.UtcNow.AddDays(-7)
+            })
+            .ToListAsync(ct);
+    }
 }
+
+
+
+
+
+
+

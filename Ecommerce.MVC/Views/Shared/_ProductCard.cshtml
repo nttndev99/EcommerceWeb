@@ -1,0 +1,188 @@
+
+@model Ecommerce.Application.DTOs.Product.ProductListDto
+
+@{
+    @* ── Computed locals (giữ nguyên từ card gốc) ── *@
+    bool    isOut   = Model.TotalStock <= 0;
+    bool    hasSale = Model.SalePrice.HasValue && Model.SalePrice < Model.BasePrice;
+
+    int disc = hasSale
+        ? (int)Math.Round((Model.BasePrice - Model.SalePrice!.Value) / Model.BasePrice * 100)
+        : 0;
+
+     string img = string.IsNullOrEmpty(Model.PrimaryImageUrl)
+        ? Url.Content("~/img/NotFound.png")
+        : Model.PrimaryImageUrl;
+
+    @* ── Label text: Sale > Featured > null ── *@
+    string? labelText = hasSale    ? "Sale"
+                        : Model.IsFeatured ? "New"
+                        : null;
+}
+
+@* ──────────────────────────────────────────────────────────────────
+   product__item
+   Thêm class "sale" nếu hasSale  |  "out-of-stock" nếu isOut
+────────────────────────────────────────────────────────────────── *@
+<div class="product__item @(hasSale ? "sale" : "") @(isOut ? "out-of-stock" : "")">
+
+    @* ── IMAGE BLOCK ── *@
+    <div class="product__item__pic set-bg"
+         data-setbg="@img"
+         style="background-image:url('@img');cursor:pointer">
+
+        @* Label badge: "Sale" / "New" / không hiện nếu null *@
+        @if (labelText != null)
+        {
+            <span class="label">@labelText</span>
+        }
+
+        @* Out-of-stock overlay *@
+        @if (isOut)
+        {
+            <span class="label" style="background:#6c757d">Out of stock</span>
+        }
+
+        @* Discount % badge (chỉ hiện khi có sale) *@
+        @if (hasSale)
+        {
+            <span class="label"
+                  style="top:auto;bottom:10px;left:10px;background:#e74c3c;font-size:.72rem">
+                -@disc%
+            </span>
+        }
+
+        @* Hover action icons *@
+        <ul class="product__hover">
+
+            @* Wishlist *@
+            <li>
+                <a href="#" title="Add to Wishlist">
+                    <img src="~/img/icon/heart.png" alt="Wishlist" />
+                </a>
+            </li>
+
+            @* Detail / Quick-view *@
+            <li>
+                <a asp-controller="Home"
+                   asp-action="ProductDetail"
+                   asp-route-id="@Model.Id"
+                   title="View Details">
+                    <img src="~/img/icon/search.png" alt="View" />
+                </a>
+            </li>
+
+            @* Compare *@
+            <li>
+                <a href="#" title="Compare">
+                    <img src="~/img/icon/compare.png" alt="Compare" />
+                    <span>Compare</span>
+                </a>
+            </li>
+
+        </ul>
+
+    </div>
+    @* ── /IMAGE BLOCK ── *@
+
+
+    @* ── TEXT BLOCK ── *@
+    <div class="product__item__text">
+
+        @* Brand (hiện nếu có) *@
+        @if (!string.IsNullOrEmpty(Model.Brand))
+        {
+            <p class="text-muted small text-uppercase mb-1"
+               style="font-size:.68rem;letter-spacing:1px">
+                @Model.Brand
+            </p>
+        }
+
+        @* Product name → link tới detail *@
+        <h6>
+            <a asp-controller="Home"
+               asp-action="ProductDetail"
+               asp-route-id="@Model.Id"
+               class="text-dark text-decoration-none">
+                @Model.Name
+            </a>
+        </h6>
+
+        @* Add to Cart button / Out of stock *@
+        @if (!isOut)
+        {
+            @* POST form → Cart.Add *@
+            <form asp-controller="Cart"
+                  asp-action="Add"
+                  method="post"
+                  class="d-inline">
+
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" name="ProductId" value="@Model.Id" />
+                <input type="hidden" name="Quantity"  value="1" />
+
+                <button type="submit" class="add-cart">
+                    + Add To Cart
+                </button>
+
+            </form>
+        }
+        else
+        {
+            @* Disabled state — giữ đúng class "add-cart" của template *@
+            <span class="add-cart"
+                  style="opacity:.45;cursor:not-allowed;pointer-events:none">
+                Out of Stock
+            </span>
+        }
+
+        @* Star Rating (5 sao — hiện theo giá trị nếu DTO có Rating, fallback 0) *@
+        @{
+            @* Dùng reflection-safe pattern: nếu DTO sau này thêm Rating thì tự hoạt động *@
+            var ratingProp = Model.GetType().GetProperty("Rating");
+            double rating  = ratingProp != null ? Convert.ToDouble(ratingProp.GetValue(Model)) : 0;
+            int    full    = (int)Math.Floor(rating);
+            bool   half    = (rating - full) >= 0.5;
+        }
+        <div class="rating">
+            @for (int i = 1; i <= 5; i++)
+            {
+                if (i <= full)
+                {
+                    <i class="fa fa-star"></i>
+                }
+                else if (i == full + 1 && half)
+                {
+                    <i class="fa fa-star-half-o"></i>
+                }
+                else
+                {
+                    <i class="fa fa-star-o"></i>
+                }
+            }
+        </div>
+
+        @* Price: sale price + strikethrough gốc  /  giá thường *@
+        @if (hasSale)
+        {
+            <h5>
+                <span style="color:#e74c3c">
+                    @Model.SalePrice!.Value.ToString("N0") ₫
+                </span>
+                <del class="text-muted"
+                     style="font-size:.8em;font-weight:400;margin-left:.4rem">
+                    @Model.BasePrice.ToString("N0") ₫
+                </del>
+            </h5>
+        }
+        else
+        {
+            <h5>@Model.BasePrice.ToString("N0") ₫</h5>
+        }
+
+    </div>
+    @* ── /TEXT BLOCK ── *@
+
+</div>
+@* ── /product__item ── *@

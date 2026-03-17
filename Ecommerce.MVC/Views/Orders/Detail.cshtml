@@ -1,0 +1,235 @@
+@model Ecommerce.Application.DTOs.Order.OrderDto
+@using Ecommerce.Domain.Enums
+@{ ViewData["Title"] = $"Order {Model.OrderCode}"; }
+
+<div class="container py-5">
+
+    <nav class="mb-4">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item">
+                <a asp-action="Index" class="text-decoration-none text-muted">My Orders</a>
+            </li>
+            <li class="breadcrumb-item active fw-semibold">@Model.OrderCode</li>
+        </ol>
+    </nav>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show py-2 small mb-3">
+            <i class="bi bi-check-circle me-1"></i>@TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show py-2 small mb-3">
+            <i class="bi bi-exclamation-circle me-1"></i>@TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <div>
+            <h3 class="fw-bold mb-1">Order @Model.OrderCode</h3>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <status-badge order-status="@Model.OrderStatus" />
+                <status-badge payment-status="@Model.PaymentStatus" />
+                <span class="text-muted small">
+                    Placed @Model.CreatedAt.ToString("dd MMM yyyy, HH:mm")
+                </span>
+            </div>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back to Orders
+        </a>
+    </div>
+
+    <div class="row g-4 align-items-start">
+
+        <div class="col-lg-8 d-flex flex-column gap-4">
+
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white border-bottom py-3 px-4 fw-semibold">
+                    Order Items
+                </div>
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 small">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4 py-2 border-0">Product</th>
+                                <th class="py-2 border-0 text-end">Unit Price</th>
+                                <th class="py-2 border-0 text-center">Qty</th>
+                                <th class="pe-4 py-2 border-0 text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td class="ps-4 py-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            @if (!string.IsNullOrEmpty(item.ImageUrl))
+                                            {
+                                                <img src="@item.ImageUrl" width="44" height="44"
+                                                     class="rounded-2 border object-fit-cover flex-shrink-0" />
+                                            }
+                                            <div>
+                                                <div class="fw-medium">@item.ProductName</div>
+                                                @if (!string.IsNullOrEmpty(item.VariantName))
+                                                {
+                                                    <div class="text-muted" style="font-size:.73rem">@item.VariantName</div>
+                                                }
+                                                @if (!string.IsNullOrEmpty(item.SKU))
+                                                {
+                                                    <code class="text-muted" style="font-size:.7rem">@item.SKU</code>
+                                                }
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">@item.UnitPrice.ToString("N0") ₫</td>
+                                    <td class="text-center">@item.Quantity</td>
+                                    <td class="pe-4 text-end fw-semibold">@item.TotalPrice.ToString("N0") ₫</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="border-top">
+                            <tr>
+                                <td colspan="3" class="ps-4 py-2 text-muted small">Subtotal</td>
+                                <td class="pe-4 text-end small">@Model.SubTotal.ToString("N0") ₫</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3" class="ps-4 py-2 text-muted small">Shipping</td>
+                                <td class="pe-4 text-end small">@Model.ShippingFee.ToString("N0") ₫</td>
+                            </tr>
+                            @if (Model.DiscountAmount > 0)
+                            {
+                                <tr>
+                                    <td colspan="3" class="ps-4 py-2 text-success small">
+                                        Discount @(Model.CouponCode != null ? $"({Model.CouponCode})" : "")
+                                    </td>
+                                    <td class="pe-4 text-end small text-success">-@Model.DiscountAmount.ToString("N0") ₫</td>
+                                </tr>
+                            }
+                            <tr class="fw-bold">
+                                <td colspan="3" class="ps-4 py-3 fs-6">Total</td>
+                                <td class="pe-4 text-end fs-6 text-success">@Model.Total.ToString("N0") ₫</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            {{-- Timeline --}}
+            <div class="card border-0 shadow-sm rounded-3 p-4">
+                <div class="fw-semibold mb-3">Order Timeline</div>
+                <div class="d-flex flex-column gap-3 small">
+                    @{
+                        void TimelineItem(string label, DateTime? dt, bool active)
+                        {
+                            var icon  = active ? "bi-check-circle-fill text-success" : "bi-circle text-muted";
+                            var color = active ? "text-dark" : "text-muted";
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi @icon fs-5" style="width:20px"></i>
+                                <div class="@color">
+                                    <div class="fw-medium">@label</div>
+                                    @if (dt.HasValue)
+                                    {
+                                        <div class="text-muted" style="font-size:.72rem">@dt.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                    @{ TimelineItem("Order Placed",   Model.CreatedAt,    true); }
+                    @{ TimelineItem("Processing",     null,               Model.OrderStatus >= OrderStatus.Processing); }
+                    @{ TimelineItem("Shipped",        Model.ShippedAt,    Model.OrderStatus >= OrderStatus.Shipped); }
+                    @{ TimelineItem("Delivered",      Model.DeliveredAt,  Model.OrderStatus == OrderStatus.Delivered); }
+                    @if (Model.OrderStatus == OrderStatus.Cancelled)
+                    {
+                        <div class="d-flex align-items-center gap-3">
+                            <i class="bi bi-x-circle-fill text-danger fs-5" style="width:20px"></i>
+                            <div>
+                                <div class="fw-medium text-danger">Cancelled</div>
+                                @if (Model.CancelledAt.HasValue)
+                                {
+                                    <div class="text-muted" style="font-size:.72rem">@Model.CancelledAt.Value.ToString("dd MMM yyyy, HH:mm")</div>
+                                }
+                                @if (!string.IsNullOrEmpty(Model.CancelReason))
+                                {
+                                    <div class="text-muted" style="font-size:.72rem">Reason: @Model.CancelReason</div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-4 d-flex flex-column gap-4">
+
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white border-bottom py-3 px-4 fw-semibold small">
+                    <i class="bi bi-geo-alt me-1 text-primary"></i>Shipping Address
+                </div>
+                <div class="card-body px-4 py-3 small">
+                    <div class="fw-semibold">@Model.RecipientName</div>
+                    <div class="text-muted">@Model.RecipientPhone</div>
+                    <div class="text-muted">@Model.FullAddress</div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white border-bottom py-3 px-4 fw-semibold small">
+                    <i class="bi bi-credit-card me-1 text-primary"></i>Payment
+                </div>
+                <div class="card-body px-4 py-3 small">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Method</span>
+                        <span class="fw-medium">@Model.PaymentMethod</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Status</span>
+                        <status-badge payment-status="@Model.PaymentStatus" />
+                    </div>
+                    @if (Model.PaidAt.HasValue)
+                    {
+                        <div class="d-flex justify-content-between mt-1">
+                            <span class="text-muted">Paid at</span>
+                            <span>@Model.PaidAt.Value.ToString("dd MMM HH:mm")</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (Model.OrderStatus == OrderStatus.Pending || Model.OrderStatus == OrderStatus.Processing)
+            {
+                <div class="card border-0 shadow-sm rounded-3 p-4">
+                    <div class="fw-semibold small mb-3">Cancel Order</div>
+                    <form asp-action="Cancel" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        <div class="mb-2">
+                            <textarea name="reason" class="form-control form-control-sm" rows="2"
+                                      placeholder="Reason for cancellation…" required></textarea>
+                        </div>
+                        <button type="submit"
+                                class="btn btn-outline-danger btn-sm w-100"
+                                onclick="return confirm('Are you sure you want to cancel this order?')">
+                            <i class="bi bi-x-circle me-1"></i>Cancel Order
+                        </button>
+                    </form>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.Note))
+            {
+                <div class="card border-0 shadow-sm rounded-3 p-4">
+                    <div class="fw-semibold small mb-1">Order Note</div>
+                    <div class="text-muted small">@Model.Note</div>
+                </div>
+            }
+
+        </div>
+    </div>
+</div>

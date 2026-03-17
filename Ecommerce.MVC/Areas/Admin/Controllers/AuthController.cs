@@ -41,7 +41,9 @@ public class AuthController : Controller
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)
     {
-        if (User.Identity?.IsAuthenticated == true) return RedirectToLocal(returnUrl);
+        if (User.Identity?.IsAuthenticated == true)
+            return RedirectAfterLogin(returnUrl);
+
         ViewBag.ReturnUrl = returnUrl;
         return View();
     }
@@ -50,20 +52,44 @@ public class AuthController : Controller
     public async Task<IActionResult> Login(LoginDto dto, string? returnUrl = null, CancellationToken ct = default)
     {
         ViewBag.ReturnUrl = returnUrl;
-        if (!ModelState.IsValid) return View(dto);
-        var result = await _authService.LoginAsync(dto, ct);
-        if (!result.IsSuccess) { ModelState.AddModelError(string.Empty, result.Error!); return View(dto); }
-        return RedirectToLocal(returnUrl);
-    }
 
+        if (!ModelState.IsValid)
+            return View(dto);
+
+        var result = await _authService.LoginAsync(dto, ct);
+
+        if (!result.IsSuccess)
+        {
+            ModelState.AddModelError(string.Empty, result.Error!);
+            return View(dto);
+        }
+
+        return RedirectAfterLogin(returnUrl);
+    }
+    private IActionResult RedirectAfterLogin(string? returnUrl)
+    {
+        if (User.IsInRole("Admin"))
+            return RedirectToAction("Index", "Home", new { area = "Admin" });
+
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            return Redirect(returnUrl);
+
+        return RedirectToAction("Index", "Home", new { area = "" });
+    }
+    
     // LOGOUT
     [HttpPost, Authorize, ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        await _authService.LogoutAsync();
-        return RedirectToAction(nameof(Login));
-    }
+        var isAdmin = User.IsInRole("Admin");
 
+        await _authService.LogoutAsync();
+
+        if (isAdmin)
+            return RedirectToAction(nameof(Login));
+
+        return RedirectToAction("Index", "Home", new { area = "" });
+    }
     // CONFIRM EMAIL
     [HttpGet]
     public async Task<IActionResult> ConfirmEmail(string userId, string token, CancellationToken ct)

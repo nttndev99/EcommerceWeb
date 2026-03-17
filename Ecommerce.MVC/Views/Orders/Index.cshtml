@@ -1,0 +1,107 @@
+@model Ecommerce.Application.Common.PagedResult<Ecommerce.Application.DTOs.Order.OrderListDto>
+@using Ecommerce.Application.DTOs.Order
+@using Ecommerce.Domain.Enums
+@{
+    ViewData["Title"] = "My Orders";
+    var filter = ViewBag.Filter as OrderFilterParams ?? new OrderFilterParams();
+}
+
+<div class="container py-5">
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h3 class="fw-bold mb-0">My Orders</h3>
+            <div class="text-muted small">@Model.TotalCount order(s)</div>
+        </div>
+    </div>
+
+    <form method="get" class="card border-0 shadow-sm rounded-3 p-3 mb-4">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <select name="orderStatus" class="form-select form-select-sm" style="width:140px"
+                    onchange="this.form.submit()">
+                <option value="">All statuses</option>
+                @foreach (var s in Enum.GetValues<OrderStatus>())
+                {
+                    <option value="Pending" selected="selected">Pending</option>                }
+            </select>
+            <input type="text" name="search" value="@filter.Search"
+                class="form-control form-control-sm" style="width:180px"
+                placeholder="Search order code…" />
+            <button type="submit" class="btn btn-dark btn-sm px-3">Search</button>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Reset</a>
+        </div>
+    </form>
+
+    @if (!Model.Items.Any())
+    {
+        <div class="card border-0 shadow-sm text-center py-5">
+            <div class="card-body">
+                <i class="bi bi-bag-x display-1 text-muted opacity-25 d-block mb-3"></i>
+                <h5 class="fw-semibold">No orders yet</h5>
+                <p class="text-muted">Start shopping to see your orders here.</p>
+                <a asp-controller="Home" asp-action="Index" class="btn btn-dark mt-2">
+                    Shop Now
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4 py-3 border-0">Order</th>
+                            <th class="py-3 border-0">Date</th>
+                            <th class="py-3 border-0">Items</th>
+                            <th class="py-3 border-0">Total</th>
+                            <th class="py-3 border-0">Status</th>
+                            <th class="py-3 border-0">Payment</th>
+                            <th class="pe-4 py-3 border-0 text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var o in Model.Items)
+                        {
+                            <tr>
+                                <td class="ps-4 py-3">
+                                    <div class="fw-semibold">
+                                        <a asp-action="Detail" asp-route-id="@o.Id"
+                                           class="text-dark text-decoration-none">
+                                            @o.OrderCode
+                                        </a>
+                                    </div>
+                                    <div class="text-muted" style="font-size:.72rem">@o.RecipientName</div>
+                                </td>
+                                <td class="text-muted">@o.CreatedAt.ToString("dd MMM yyyy")</td>
+                                <td class="text-muted">@o.ItemCount item(s)</td>
+                                <td class="fw-semibold">@o.Total.ToString("N0") ₫</td>
+                                <td><status-badge order-status="@o.OrderStatus" /></td>
+                                <td><status-badge payment-status="@o.PaymentStatus" /></td>
+                                <td class="pe-4 text-end">
+                                    <a asp-action="Detail" asp-route-id="@o.Id"
+                                       class="btn btn-outline-secondary btn-sm">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <div class="px-4 py-3 border-top d-flex justify-content-center">
+                    @await Component.InvokeAsync("Pagination", new
+                    {
+                        currentPage = Model.PageNumber,
+                        totalPages  = Model.TotalPages,
+                    })
+                </div>
+            }
+        </div>
+    }
+
+</div>

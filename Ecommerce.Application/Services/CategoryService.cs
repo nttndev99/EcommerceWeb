@@ -297,4 +297,29 @@ public class CategoryService : ICategoryService
 
         return PagedResult<CategoryListDto>.Create(items, totalCount, filter.PageNumber, filter.PageSize);
     }
+//------------------------------------------------
+    public async Task<List<CategoryListDto>> GetHomeCategories(CancellationToken ct)
+    {
+        return await _uow.Categories.Query()
+            .AsNoTracking()
+            .Where(c => c.IsActive && c.ParentId == null && !c.IsDeleted)
+            .OrderBy(c => c.DisplayOrder)
+            .Take(8)
+            .Select(c => new CategoryListDto
+            {
+                Id           = c.Id,
+                Name         = c.Name,
+                Slug         = c.Slug,
+                IsActive     = c.IsActive,
+                ParentId     = c.ParentId,
+                ParentName   = c.Parent != null ? c.Parent.Name : null,
+                DisplayOrder = c.DisplayOrder,
+                ProductCount = c.Products.Count(),   // kể cả deleted products
+                CreatedAt    = c.CreatedAt
+            })
+            .ToListAsync(ct);
+    }
+
+
+
 }

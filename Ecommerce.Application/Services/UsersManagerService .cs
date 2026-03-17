@@ -5,6 +5,8 @@ using Ecommerce.Application.DTOs.Admin;
 using Ecommerce.Application.Interfaces;
 using Ecommerce.Domain.Entities;
 using Ecommerce.Application.Interfaces.Services;
+using Ecommerce.Domain.Interfaces;
+using Ecommerce.Application.Interfaces.Repositories;
 
 namespace Ecommerce.Infrastructure.Identity;
 
@@ -12,15 +14,23 @@ public class UsersManagerService : IUsersManagerService
 {
     private readonly UserManager<AppUser>      _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
-    public UsersManagerService(UserManager<AppUser> userManager, RoleManager<IdentityRole> roleManager)
+    private readonly IUnitOfWork               _uow;
+
+    public UsersManagerService(
+        UserManager<AppUser>      userManager,
+        RoleManager<IdentityRole> roleManager,
+        IUnitOfWork               uow)
     {
-        _userManager = userManager;
-        _roleManager = roleManager;
+        _userManager     = userManager;
+        _roleManager     = roleManager;
+        _uow             = uow;
     }
+
     public static class SystemAccounts
     {
         public const string AdminEmail = "admin@ecommerce.com";
     }
+
     // ─────────────────────────────────────────────
     // GET PAGED
     // ─────────────────────────────────────────────
@@ -34,8 +44,8 @@ public class UsersManagerService : IUsersManagerService
             var kw = filter.Search.Trim().ToLower();
             query = query.Where(u =>
                 u.FullName.ToLower().Contains(kw) ||
-                (u.Email        != null && u.Email.ToLower().Contains(kw)) ||
-                (u.PhoneNumber  != null && u.PhoneNumber.Contains(kw)));
+                (u.Email       != null && u.Email.ToLower().Contains(kw)) ||
+                (u.PhoneNumber != null && u.PhoneNumber.Contains(kw)));
         }
 
         if (filter.IsActive.HasValue)
@@ -66,10 +76,8 @@ public class UsersManagerService : IUsersManagerService
             .Skip((filter.PageNumber - 1) * filter.PageSize)
             .Take(filter.PageSize)
             .ToListAsync(ct);
-
-        // Filter by role if needed (in-memory because UserManager doesn't support IQueryable for roles)
         var result = new List<AdminUserListDto>();
-        var now2 = DateTimeOffset.UtcNow;
+        var now2   = DateTimeOffset.UtcNow;
 
         foreach (var u in users)
         {
@@ -122,49 +130,46 @@ public class UsersManagerService : IUsersManagerService
             Roles          = roles.ToList(),
         };
     }
+
     // ─────────────────────────────────────────────
-    // Create
+    // CREATE
     // ─────────────────────────────────────────────
     public async Task<Result> CreateAsync(AdminCreateUserDto dto, CancellationToken ct = default)
     {
-        // 1. Check email duplicate
         var existing = await _userManager.FindByEmailAsync(dto.Email);
         if (existing is not null)
             return Result.Failure($"Email '{dto.Email}' is already registered.");
-    
-        // 2. Check role exists
+
         if (!await _roleManager.RoleExistsAsync(dto.Role))
             return Result.Failure($"Role '{dto.Role}' does not exist.");
-    
-        // 3. Create user
+
         var user = new AppUser
         {
             FullName       = dto.FullName,
             UserName       = dto.Email,
             Email          = dto.Email,
             PhoneNumber    = dto.PhoneNumber,
-            EmailConfirmed = dto.EmailConfirmed,   // Admin tạo → skip email confirm
+            EmailConfirmed = dto.EmailConfirmed,
             IsActive       = dto.IsActive,
             CreatedAt      = DateTime.UtcNow,
         };
-    
+
         var createResult = await _userManager.CreateAsync(user, dto.Password);
         if (!createResult.Succeeded)
             return Result.Failure(
                 string.Join(", ", createResult.Errors.Select(e => e.Description)));
-    
-        // 4. Assign role
+
         var roleResult = await _userManager.AddToRoleAsync(user, dto.Role);
         if (!roleResult.Succeeded)
         {
-            // Rollback user if role assign fails
             await _userManager.DeleteAsync(user);
             return Result.Failure(
                 string.Join(", ", roleResult.Errors.Select(e => e.Description)));
         }
-    
+
         return Result.Success();
     }
+
     // ─────────────────────────────────────────────
     // UPDATE
     // ─────────────────────────────────────────────
@@ -173,11 +178,13 @@ public class UsersManagerService : IUsersManagerService
         var user = await _userManager.FindByIdAsync(dto.Id);
         if (user is null) return Result.Failure("User not found.");
 
+        if (user.Email == SystemAccounts.AdminEmail)
+            return Result.Failure("System Admin account cannot be modified.");
+
         user.FullName    = dto.FullName;
         user.PhoneNumber = dto.PhoneNumber;
         user.IsActive    = dto.IsActive;
-        if (user.Email == SystemAccounts.AdminEmail)
-            return Result.Failure("System Admin account cannot be modified.");
+
         var result = await _userManager.UpdateAsync(user);
         return result.Succeeded
             ? Result.Success()
@@ -191,12 +198,15 @@ public class UsersManagerService : IUsersManagerService
     {
         var user = await _userManager.FindByIdAsync(id);
         if (user is null) return Result.Failure("User not found.");
+
         if (user.Email == SystemAccounts.AdminEmail)
             return Result.Failure("System Admin account cannot be locked.");
+
         await _userManager.SetLockoutEnabledAsync(user, true);
         var result = await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
 
-        return result.Succeeded ? Result.Success()
+        return result.Succeeded
+            ? Result.Success()
             : Result.Failure(string.Join(", ", result.Errors.Select(e => e.Description)));
     }
 
@@ -207,19 +217,22 @@ public class UsersManagerService : IUsersManagerService
 
         var result = await _userManager.SetLockoutEndDateAsync(user, null);
 
-        return result.Succeeded ? Result.Success()
+        return result.Succeeded
+            ? Result.Success()
             : Result.Failure(string.Join(", ", result.Errors.Select(e => e.Description)));
     }
 
     // ─────────────────────────────────────────────
-    // RESET PASSWORD (admin)
+    // RESET PASSWORD
     // ─────────────────────────────────────────────
     public async Task<Result> ResetPasswordAsync(AdminResetPasswordDto dto, CancellationToken ct = default)
     {
         var user = await _userManager.FindByIdAsync(dto.Id);
         if (user is null) return Result.Failure("User not found.");
+
         if (user.Email == SystemAccounts.AdminEmail)
-                return Result.Failure("System Admin password cannot be reset.");
+            return Result.Failure("System Admin password cannot be reset.");
+
         var token  = await _userManager.GeneratePasswordResetTokenAsync(user);
         var result = await _userManager.ResetPasswordAsync(user, token, dto.NewPassword);
 
@@ -235,8 +248,26 @@ public class UsersManagerService : IUsersManagerService
     {
         var user = await _userManager.FindByIdAsync(id);
         if (user is null) return Result.Failure("User not found.");
+
+        // Guard: System Admin
         if (user.Email == SystemAccounts.AdminEmail)
-        return Result.Failure("System Admin account cannot be deleted.");
+            return Result.Failure("System Admin account cannot be deleted.");
+
+        // Guard: có Order → không xóa
+        // Dùng IOrderRepository.GetPagedAsync với filter userId
+        var (orders, orderCount) = await _uow.Orders.GetPagedAsync(
+            new Ecommerce.Application.DTOs.Order.OrderFilterParams
+            {
+                UserId     = id,
+                PageNumber = 1,
+                PageSize   = 1,   // chỉ cần biết có hay không
+            }, ct);
+
+        if (orderCount > 0)
+            return Result.Failure(
+                $"Cannot delete user — they have {orderCount} order(s). " +
+                "Deactivate the account instead.");
+
         var result = await _userManager.DeleteAsync(user);
         return result.Succeeded
             ? Result.Success()

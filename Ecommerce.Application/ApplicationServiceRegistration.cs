@@ -27,6 +27,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IRolesService, RolesService>();
         services.AddScoped<IUsersManagerService, UsersManagerService>();
 
+        services.AddScoped<ICartService, CartService>();
         return services;
     }
 }

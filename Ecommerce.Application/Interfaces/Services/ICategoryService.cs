@@ -14,6 +14,9 @@ namespace Ecommerce.Application.Interfaces.Services
         Task<Result> HardDeleteAsync(int id, CancellationToken ct = default);
         Task<Result<CategoryDto>> RestoreAsync(int id, CancellationToken ct = default);
         Task<PagedResult<CategoryListDto>> GetDeletedAsync(CategoryFilterParams filter, CancellationToken ct = default);
+
+        Task<List<CategoryListDto>> GetHomeCategories(CancellationToken ct = default);
+
     }
 
 }

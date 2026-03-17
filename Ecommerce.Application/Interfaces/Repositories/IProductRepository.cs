@@ -10,6 +10,7 @@ namespace Ecommerce.Application.Interfaces.Repositories
         Task<IEnumerable<Product>> GetByProductIdAsync(int productId, CancellationToken ct = default);
         Task<bool> SlugExistsAsync(string slug, int? excludeId = null, CancellationToken ct = default); // ← Add this
 
+        Task<Product?> GetWithDetailsAsync(int id, CancellationToken ct = default);
 
     }
 

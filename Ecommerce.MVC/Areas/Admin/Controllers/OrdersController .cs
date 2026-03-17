@@ -2,10 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using Ecommerce.Application.DTOs.Order;
 using Ecommerce.Application.Interfaces;
 using Ecommerce.Domain.Enums;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Ecommerce.Web.Controllers;
 
 [Area("Admin")]
+[Authorize(Policy = "RequireAdmin")]
+
 public class OrdersController : Controller
 {
     private readonly IOrderService _orderService;
