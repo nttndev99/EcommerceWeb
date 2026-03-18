@@ -454,6 +454,79 @@ public class ProductService : IProductService
             })
             .ToListAsync(ct);
     }
+
+
+
+    public async Task<PagedResult<ProductListDto>> GetBySlugAsync(string slug,ProductFilterParams filter, CancellationToken ct = default)
+    {
+        var pageSize   = filter.PageSize   > 0 ? filter.PageSize   : 10;
+        var pageNumber = filter.PageNumber > 0 ? filter.PageNumber : 1;
+
+        // 1. Base query qua Repository — không dùng DbContext trực tiếp
+        IQueryable<Product> query = _uow.Products.Query()
+        .Where(p => p.Slug == slug && !p.IsDeleted).AsNoTracking();
+
+        // 2. Apply filters
+        query = ApplyFilters(query, filter);
+
+        // 3. Count trước khi sort / page
+        var totalCount = await query.CountAsync(ct);
+
+        // 4. Sort
+        IOrderedQueryable<Product> sorted = ApplySort(query, filter);
+
+        // 5. Page + Project
+        var items = await sorted
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(p => new ProductListDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Slug = p.Slug,
+                BasePrice = p.BasePrice,
+                SalePrice = p.SalePrice,
+                SKU = p.SKU,
+                Status = p.Status,
+                IsFeatured = p.IsFeatured,
+                Brand = p.Brand,
+                CreatedAt = p.CreatedAt,
+                VariantCount = _uow.ProductVariants.Query()
+                    .Where(v => v.ProductId == p.Id && !v.IsDeleted)
+                    .Count(),
+                CategoryName = _uow.Categories.Query()
+                    .Where(c => c.Id == p.CategoryId)
+                    .Select(c => c.Name)
+                    .FirstOrDefault(), // NOTE: tranh NULL khi category bi xoa hoac khong co => tranh loi paginate
+
+                TotalStock = _uow.Inventories.Query()
+                    .Where(i => i.ProductId == p.Id)
+                    .Sum(i => (int?)(i.Quantity - i.ReservedQuantity)) ?? 0, // NOTE: tranh null khi product chua co inventory nao => tranh loi paginate
+
+                PrimaryImageUrl = p.Images
+                    .Where(i => i.IsPrimary)
+                    .Select(i => i.ImageUrl)
+                    .FirstOrDefault()
+            })
+            .ToListAsync(ct);
+
+        return PagedResult<ProductListDto>.Create(items, totalCount, pageNumber, pageSize);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 

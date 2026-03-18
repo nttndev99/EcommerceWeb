@@ -1,13 +1,14 @@
 using Ecommerce.Application.DTOs.Category;
+using Ecommerce.Domain.Interfaces;
 using Ecommerce.Infrastructure.UnitOfWork;
 using Ecommerce.MVC.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 public class CategoryMenuViewComponent : ViewComponent
 {
-    private readonly UnitOfWork _uow;
+    private readonly IUnitOfWork _uow;
 
-    public CategoryMenuViewComponent(UnitOfWork uow)
+    public CategoryMenuViewComponent(IUnitOfWork uow)
     {
         _uow = uow;
     }

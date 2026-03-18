@@ -14,6 +14,8 @@ namespace Ecommerce.Application.Interfaces.Services
         Task<Result<ProductDto>> RestoreAsync(int id, CancellationToken ct = default);
         Task<PagedResult<ProductListDto>> GetDeletedAsync(ProductFilterParams filter, CancellationToken ct = default);
 
+
+        Task<PagedResult<ProductListDto>> GetBySlugAsync(string slug, ProductFilterParams filter, CancellationToken ct = default);
         Task<List<ProductListDto>> GetHomeProducts(string tab, CancellationToken ct = default);
 
     }

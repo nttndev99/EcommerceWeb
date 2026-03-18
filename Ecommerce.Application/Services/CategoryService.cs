@@ -320,6 +320,58 @@ public class CategoryService : ICategoryService
             .ToListAsync(ct);
     }
 
+    public async Task<PagedResult<CategoryListDto>> GetBySlugAsync(string slug, CategoryFilterParams filter, CancellationToken ct = default)
+    {
+        var query = _uow.Categories.Query()
+            .Where(c => c.Slug == slug && !c.IsDeleted)
+            .AsNoTracking();
 
+        // Search
+        if (!string.IsNullOrWhiteSpace(filter.Search))
+        {
+            var search = filter.Search.ToLower();
+            query = query.Where(c => c.Name.ToLower().Contains(search) ||
+                                    c.Slug.ToLower().Contains(search));
+        }
+
+        // Filters
+        if (filter.IsActive.HasValue)
+            query = query.Where(c => c.IsActive == filter.IsActive.Value);
+
+        if (filter.ParentId.HasValue)
+            query = query.Where(c => c.ParentId == filter.ParentId.Value);
+
+        // Total count (performance: count before projection)
+        var totalCount = await query.CountAsync(ct);
+
+        // Sorting
+        query = filter.SortBy?.ToLower() switch
+        {
+            "name" => filter.SortDirection == "desc" ? query.OrderByDescending(c => c.Name) : query.OrderBy(c => c.Name),
+            "displayorder" => filter.SortDirection == "desc" ? query.OrderByDescending(c => c.DisplayOrder) : query.OrderBy(c => c.DisplayOrder),
+            "createdat" => filter.SortDirection == "desc" ? query.OrderByDescending(c => c.CreatedAt) : query.OrderBy(c => c.CreatedAt),
+            _ => query.OrderBy(c => c.Name)
+        };
+
+        // Pagination + Projection (single query, no N+1)
+        var items = await query
+            .Skip((filter.PageNumber - 1) * filter.PageSize)
+            .Take(filter.PageSize)
+            .Select(c => new CategoryListDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Slug = c.Slug,
+                IsActive = c.IsActive,
+                ParentId = c.ParentId,
+                ParentName = c.Parent != null ? c.Parent.Name : null,
+                DisplayOrder = c.DisplayOrder,
+                ProductCount = c.Products.Count(p => !p.IsDeleted),
+                CreatedAt = c.CreatedAt
+            })
+            .ToListAsync(ct);
+
+        return PagedResult<CategoryListDto>.Create(items, totalCount, filter.PageNumber, filter.PageSize);
+    }
 
 }

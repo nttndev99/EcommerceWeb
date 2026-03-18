@@ -18,8 +18,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Clean Architecture layers ─────────────────────────────────────────────
 builder.Services.AddApplicationServices();
-builder.Services.AddInfrastructureServices(builder.Configuration);
-
+builder.Services.AddInfrastructureServices(builder.Configuration); // <---- CALL builder.Services.AddDbContext<EcommerceDbContext>, EF + UoW
 // ── MVC + Filters ─────────────────────────────────────────────────────────
 builder.Services
     .AddControllersWithViews(options =>
@@ -32,11 +31,11 @@ builder.Services
 builder.Services.AddScoped<PerformanceLogAttribute>();
 
 // ── EF + UoW ─────────────────────────────────────────────────────────────
-builder.Services.AddDbContext<EcommerceDbContext>(opts =>
-    opts.UseSqlServer(builder.Configuration["ConnectionStrings:EcommerceConnection"]));
+// builder.Services.AddDbContext<EcommerceDbContext>(opts =>
+//     opts.UseSqlServer(builder.Configuration["ConnectionStrings:EcommerceConnection"]));
 
-builder.Services.AddScoped<UnitOfWork>();
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();  // ← interface mapping
+// builder.Services.AddScoped<UnitOfWork>();
+// builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();  
 
 // ── Identity ─────────────────────────────────────────────────────────────
 builder.Services
