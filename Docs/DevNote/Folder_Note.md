@@ -38,6 +38,9 @@ SmartEcommerce/
 │
 └── SmartEcommerce.API/                 # REST API - chỉ dùng Application DTOs. Phụ thuộc Aplication và Infrastructure
     ├── Controllers/
+    ├── Extensions/
+    ├── MIddleware/
+    ├── Models/
     └── Program.cs
 
 # Refernce
@@ -46,6 +49,7 @@ Application    --------------- Domain ----- Để sử dụng Entities và Domai
 Infrastructure --------------- Application -----Để thực thi (Implement) các Interface từ Application.
 WebUI          --------------- Application, Infrastructure ----- Để điều phối luồng và cấu hình DI lúc khởi chạy.
 API            --------------- Aplication và Infrastructure
+
 # OOP
 Domain
  ├─ Entities (Encapsulation)
@@ -56,10 +60,45 @@ Application
 
 Infrastructure
  ├─ EFRepositories
-MVC
+MVC/API
  ├─ Controllers (DI + OOP)
  ├─ ViewModels
 
+# Pattern
+## Repository Pattern          
+- Tách: Business logic ≠ Database logic 
+- Vấn đề cần hiểu: Repository là Abstraction của data access cho domain
+- Ví dụ thực tế:
+    Application/Interfaces/ICategoryRepository.cs
+    Infrastructure/Repositories/CategoryRepository.cs
+
+## Service Layer Pattern       
+- Điều phối flow: Controller → Service → Repository     
+- Vấn đề cần hiểu: Service đang chứa toàn bộ business logic 
+    Service = orchestration
+    Domain = logic
+- Ví dụ thực tế:
+    Application/Services/CategoryService.cs
+
+## Denpendency Injection 
+- Mục đích: Inject dependency thay vì new cứng program.cs: services.AddScoped<ICategoryRepository, CategoryRepository>();
+- Vấn đề cần hiểu: DI không phải pattern business → nó là pattern về object creation & dependency management
+- Lợi: Loose coupling, dễ test, dễ thay implementation
+- Ví dụ thực tế:
+ApplicationServiceRegistration.cs
+InfrastructureServiceRegistration.cs
+
+## Unit of Work
+- Mục đích: gom nhiều operation thành 1 transaction: Order + Payment + Inventory → 1 commit
+- Chú ý: await unitOfWork.CommitAsync();
+- Tránh vừa dùng DbContext vừa dung UoW
+- Ví dụ thực tế: Infrastructure/UnitOfWork/UnitOfWork.cs
+
+## ĐỀ XUẤT DÙNG CÁC PATTERN:
+- Domain Model Pattern
+- CQRS
+- Specification Pattern
+- Domain Events
 
 # Database Design
 

@@ -1,3 +1,170 @@
-SELECT * FROM Products;
-SELECT * FROM ProductVariants;
-SELECT * FROM ProductImages;
+-- =====================================================
+-- {{...}} bằng ID
+-- =====================================================
+
+-- =====================================================
+-- CATEGORIES
+-- =====================================================
+
+-- Lấy tất cả categories kèm tên parent
+SELECT
+    c.Id,
+    c.Name,
+    p.Name AS ParentName,
+    c.CreatedAt
+FROM Categories c
+LEFT JOIN Categories p ON c.ParentId = p.Id;
+
+-- Lấy categories gốc (không có parent)
+SELECT * FROM Categories WHERE ParentId IS NULL;
+
+-- Lấy sub-categories của một category
+SELECT * FROM Categories WHERE ParentId = 2;
+
+
+-- =====================================================
+-- PRODUCTS
+-- =====================================================
+
+-- Lấy tất cả products kèm category
+SELECT
+    p.Id,
+    p.Name,
+    p.Description,
+    c.Name AS CategoryName,
+    p.CreatedAt
+FROM Products p
+JOIN Categories c ON p.CategoryId = c.Id;
+
+-- Lấy products theo category
+SELECT p.*
+FROM Products p
+WHERE p.CategoryId = 5;
+
+-- Lấy product kèm variants + ảnh + stock
+SELECT
+    p.Id         AS ProductId,
+    p.Name       AS ProductName,
+    v.Id         AS VariantId,
+    v.SKU,
+    v.Price,
+    v.Color,
+    v.Size,
+    img.ImageUrl,
+    img.IsPrimary,
+    i.Quantity,
+    i.ReservedQuantity,
+    (i.Quantity - i.ReservedQuantity) AS AvailableStock
+FROM Products p
+JOIN ProductVariants  v   ON v.ProductId  = p.Id
+JOIN Inventories      i   ON i.ProductVariantId  = v.Id
+LEFT JOIN ProductImages img ON img.ProductId = p.Id
+WHERE p.Id = '{{ProductId}}';
+
+
+-- =====================================================
+-- INVENTORIES
+-- =====================================================
+
+-- Xem tồn kho tất cả variants
+SELECT
+    v.SKU,
+    v.Color,
+    v.Size,
+    i.Quantity,
+    i.ReservedQuantity,
+    (i.Quantity - i.ReservedQuantity) AS Available
+FROM Inventories i
+JOIN ProductVariants v ON i.ProductVariantId = v.Id;
+
+-- Cảnh báo hàng sắp hết (available < 5)
+SELECT
+    v.SKU,
+    v.Color,
+    v.Size,
+    (i.Quantity - i.ReservedQuantity) AS Available
+FROM Inventories i
+JOIN ProductVariants v ON i.ProductVariantId = v.Id
+WHERE (i.Quantity - i.ReservedQuantity) < 5;
+
+
+-- =====================================================
+-- ORDERS
+-- =====================================================
+
+-- Lấy tất cả orders kèm thông tin user
+SELECT
+    o.Id         AS OrderId,
+    u.Email,
+    o.Total,
+    o.OrderStatus,
+    o.CreatedAt
+FROM Orders o
+JOIN AspNetUsers u ON o.UserId = u.Id
+ORDER BY o.CreatedAt DESC;
+
+-- Lấy orders theo status
+SELECT * FROM Orders WHERE OrderStatus = 'Pending';
+
+-- Lấy orders của một user
+SELECT * FROM Orders
+WHERE UserId = '{{UserId}}'
+ORDER BY CreatedAt DESC;
+
+-- Chi tiết một order kèm items
+SELECT
+    o.Id             AS OrderId,
+    o.OrderStatus,
+    o.Total,
+    u.Email,
+    v.SKU,
+    v.Color,
+    v.Size,
+    oi.Quantity,
+    oi.UnitPrice,
+    (oi.Quantity * oi.UnitPrice) AS SubTotal
+FROM Orders o
+JOIN AspNetUsers     u  ON o.UserId    = u.Id
+JOIN OrderItems      oi ON oi.OrderId  = o.Id
+JOIN ProductVariants v  ON oi.ProductVariantId = v.Id
+WHERE o.Id = '{{OrderId}}';
+
+-- Thống kê orders theo status
+SELECT
+    OrderStatus,
+    COUNT(*)        AS Total,
+    SUM(Total) AS Revenue
+FROM Orders
+GROUP BY OrderStatus;
+
+-- Doanh thu theo ngày
+SELECT
+    CAST(CreatedAt AS DATE) AS Date,
+    COUNT(*)                AS OrderCount,
+    SUM(Total)        AS Revenue
+FROM Orders
+WHERE OrderStatus = 'Delivered'
+GROUP BY CAST(CreatedAt AS DATE)
+ORDER BY Date DESC;
+
+
+
+-- =====================================================
+-- USERS & ROLES
+-- =====================================================
+
+-- Lấy tất cả users kèm roles
+SELECT
+    u.Id,
+    u.Email,
+    r.Name AS Role
+FROM AspNetUsers u
+LEFT JOIN AspNetUserRoles ur ON u.Id  = ur.UserId
+LEFT JOIN AspNetRoles     r  ON ur.RoleId = r.Id;
+
+-- Lấy tất cả admin
+SELECT u.Id, u.Email
+FROM AspNetUsers u
+JOIN AspNetUserRoles ur ON u.Id     = ur.UserId
+JOIN AspNetRoles     r  ON ur.RoleId = r.Id
+WHERE r.Name = 'Admin';

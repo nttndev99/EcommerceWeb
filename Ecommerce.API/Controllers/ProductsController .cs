@@ -13,24 +13,17 @@ namespace Ecommerce.API.Controllers;
 // ═══════════════════════════════════════════════════════════════
 public class ProductsController : BaseApiController
 {
-    // FIX 1: Xóa khai báo duplicate _productService (compile error)
     private readonly IProductService _productService;
     private readonly IProductVariantService _productvariantService;
     private readonly IProductImageService _productimageService;
-    private readonly ICategoryService _categoryService;
-    private readonly IInventoryService _inventoryService;
 
     public ProductsController(IProductService productService, 
     IProductVariantService productVariantService,
-    IProductImageService productImageService,
-    ICategoryService categoryService,
-    IInventoryService inventoryService)
+    IProductImageService productImageService)
     {
         _productService = productService;
         _productvariantService = productVariantService;
         _productimageService = productImageService;
-        _categoryService = categoryService;
-        _inventoryService = inventoryService;
     }
 
     /// <summary>Get paged list of products</summary>
@@ -171,123 +164,3 @@ public class ProductsController : BaseApiController
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// CATEGORIES
-// ═══════════════════════════════════════════════════════════════
-public class CategoriesController : BaseApiController
-{
-    private readonly ICategoryService _categoryService;
-
-    public CategoriesController(ICategoryService categoryService)
-        => _categoryService = categoryService;
-
-    [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] CategoryFilterParams filter, CancellationToken ct)
-    {
-        var result = await _categoryService.GetPagedAsync(filter, ct);
-        return Paged(result);
-    }
-
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetById(int id, CancellationToken ct)
-    {
-        var cat = await _categoryService.GetByIdAsync(id, ct);
-        return cat is null ? NotFound($"Category {id} not found.") : Ok(cat);
-    }
-
-    [HttpGet("slug/{slug}")]
-    public async Task<IActionResult> GetBySlug(string slug, [FromQuery] CategoryFilterParams filter, CancellationToken ct)
-    {
-        var cat = await _categoryService.GetBySlugAsync(slug, filter, ct);
-        return cat is null ? NotFound($"Category '{slug}' not found.") : Ok(cat);
-    }
-
-    [HttpPost]
-    [Authorize(Policy = "RequireAdmin")]
-    public async Task<IActionResult> Create(
-        [FromBody] CreateCategoryDto dto, CancellationToken ct)
-    {
-        if (!ModelState.IsValid) return BadRequest("Validation failed.");
-        var result = await _categoryService.CreateAsync(dto, ct);
-        return result.IsSuccess
-            // FIX 4: result.Value → result.Data (nhất quán với toàn bộ codebase)
-            ? Created($"/api/v1/categories/{result.Data!.Id}", result.Data, "Category created.")
-            : BadRequest(result.Error!);
-    }
-
-    [HttpPut("{id:int}")]
-    [Authorize(Policy = "RequireAdmin")]
-    public async Task<IActionResult> Update(
-        int id, [FromBody] UpdateCategoryDto dto, CancellationToken ct)
-    {
-        if (id != dto.Id) return BadRequest("ID mismatch.");
-        var result = await _categoryService.UpdateAsync(dto, ct);
-        return FromResult(result, "Category updated.");
-    }
-
-    [HttpDelete("{id:int}")]
-    [Authorize(Policy = "RequireAdmin")]
-    public async Task<IActionResult> Delete(int id, CancellationToken ct)
-    {
-        var result = await _categoryService.HardDeleteAsync(id, ct);
-        return FromResult(result, "Category deleted.");
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// INVENTORY
-// ═══════════════════════════════════════════════════════════════
-public class InventoryController : BaseApiController
-{
-    private readonly IInventoryService _inventoryService;
-
-    public InventoryController(IInventoryService inventoryService)
-        => _inventoryService = inventoryService;
-
-    [HttpGet]
-    [Authorize(Policy = "RequireAdmin")]
-    public async Task<IActionResult> GetAll(
-        [FromQuery] InventoryFilterParams filter, CancellationToken ct)
-    {
-        var result = await _inventoryService.GetPagedAsync(filter, ct);
-        return Paged(result);
-    }
-
-    [HttpGet("{id:int}")]
-    [Authorize(Policy = "RequireAdmin")]
-    public async Task<IActionResult> GetById(int id, CancellationToken ct)
-    {
-        var inv = await _inventoryService.GetByIdAsync(id, ct);
-        return inv is null ? NotFound($"Inventory {id} not found.") : Ok(inv);
-    }
-
-    [HttpGet("low-stock")]
-    [Authorize(Policy = "RequireAdmin")]
-    public async Task<IActionResult> LowStock(
-        [FromQuery] InventoryFilterParams filter, CancellationToken ct)
-    {
-        filter.IsLowStock = true;
-        var result = await _inventoryService.GetPagedAsync(filter, ct);
-        return Paged(result);
-    }
-
-    [HttpPut("{id:int}")]
-    [Authorize(Policy = "RequireAdmin")]
-    public async Task<IActionResult> Update(
-        int id, [FromBody] UpdateInventoryDto dto, CancellationToken ct)
-    {
-        dto.Id = id;
-        var result = await _inventoryService.UpdateStockAsync(dto, ct);
-        return FromResult(result, "Inventory updated.");
-    }
-
-    [HttpPost("{id:int}/adjust")]
-    [Authorize(Policy = "RequireAdmin")]
-    public async Task<IActionResult> Adjust(
-        int id, [FromBody] AdjustInventoryDto dto, CancellationToken ct)
-    {
-        dto.Id = id;
-        var result = await _inventoryService.AdjustAsynckAsync(dto, ct);
-        return FromResult(result, "Inventory adjusted.");
-    }
-}
